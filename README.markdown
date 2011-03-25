@@ -1,13 +1,17 @@
-# catfriend
+# Catfriend
 
-catfriend is python script that checks your e-mail and creates desktop notifications using dbus.
+catfriend is python script that checks your e-mail and creates desktop notifications using dbus. This means it can create notifications on KDE, Gnome, Awesome and all other window managers that support the notification specification.
 
-## installation
+# Features
+* Updates an account's notification if it has not been closed rather than creating duplicate notifications.
+* Supports IMAP accounts with or without SSL.
+
+## Installation
     $ git clone git://github.com/tuxjay/catfriend.git
     $ cp catfriend/catfriend.sample.config ~/.config/catfriend
     $ ./catfriend/catfriend.py
 
-## configuration
+## Configuration
 The configuration file lives at ~/.config/catfriend. Here is a sample:
     sources = [
         {
@@ -26,5 +30,5 @@ The configuration file lives at ~/.config/catfriend. Here is a sample:
     timeout       = 5000 # in milliseconds
     checkInterval = 60   # in seconds
 
-## dependencies
+## Dependencies
 * python-notify

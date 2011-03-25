@@ -14,7 +14,10 @@ class MailSource:
         self.host = src_data['host']
         self.notification = pynotify.Notification("chekor")
         self.notification.set_timeout(timeout)
-        self.imap = imaplib.IMAP4_SSL(self.host)
+        if 'no_ssl' in src_data and src_data['no_ssl']:
+            self.imap = imaplib.IMAP4(self.host)
+        else:
+            self.imap = imaplib.IMAP4_SSL(self.host)
         self.loggedIn = self.login()
         if not self.loggedIn:
             self.notify("could not login")
