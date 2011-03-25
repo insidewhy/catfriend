@@ -9,4 +9,4 @@ host imap.gmail.com
     password  faptap
 
 timeout        50000000 # in milliseconds
-checkinterval  60   # in seconds
+checkInterval  60   # in seconds
