@@ -23,7 +23,7 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
             'no_ssl'   : True,  # ssl is on by default
         },
         {
-            'id'       : 'gmail',
+            # if id is not present the imap host is displayed instead
             'user'     : 'myfriend@gmail.com',
             'password' : 'superkit',
             'host'     : 'imap.gmail.com',

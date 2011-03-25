@@ -8,10 +8,15 @@ from os import getenv
 class MailSource:
     def __init__(self, src_data):
         self.lastUid = 0
-        self.id = src_data['id']
+
+        self.host = src_data['host']
         self.user = src_data['user']
         self.password = src_data['password']
-        self.host = src_data['host']
+        if 'id' in src_data:
+            self.id = src_data['id']
+        else:
+            self.id = self.host
+
         self.notification = pynotify.Notification("chekor")
         self.notification.set_timeout(timeout)
         if 'no_ssl' in src_data and src_data['no_ssl']:
