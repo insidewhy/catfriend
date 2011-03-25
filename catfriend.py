@@ -4,25 +4,44 @@ import imaplib
 import pynotify
 from time import sleep
 from os import getenv
+from io import open
+from re import compile as regex
+
+sources       = []
+timeout       = 10000
+checkInterval = 60
+
+class IncompleteSource(Exception):
+    def __init__(self, id, value):
+        self.id = id
+        self.value = value
+    def __str__(self):
+        return self.id + ': ' + self.value
 
 class MailSource:
-    def __init__(self, src_data):
-        self.lastUid = 0
+    def __init__(self, host):
+        self.host = host
+        self.id = host
+        self.user = None
+        self.password = None
+        self.noSsl = False
 
-        self.host = src_data['host']
-        self.user = src_data['user']
-        self.password = src_data['password']
-        if 'id' in src_data:
-            self.id = src_data['id']
-        else:
-            self.id = self.host
-
-        self.notification = pynotify.Notification("chekor")
+    def init(self):
+        self.lastUid      = 0
+        self.notification = pynotify.Notification("catfriend")
         self.notification.set_timeout(timeout)
-        if 'no_ssl' in src_data and src_data['no_ssl']:
+
+        if self.user is None:
+            raise IncompleteSource(self.id, "missing user")
+
+        if self.password is None:
+            raise IncompleteSource("missing password")
+
+        if self.noSsl:
             self.imap = imaplib.IMAP4(self.host)
         else:
             self.imap = imaplib.IMAP4_SSL(self.host)
+
         self.loggedIn = self.login()
         if not self.loggedIn:
             self.notify("could not login")
@@ -72,22 +91,75 @@ class MailSource:
         self.notification.update(self.id + ': ' + notStr)
         self.notification.show()
 
+    def __str__(self):
+        return self.id
+
+
 def main():
+    global sources
     pynotify.init("basics")
+
+    for source in sources:
+        source.init()
+
+    while True:
+        for source in sources:
+            source.run()
+        sleep(checkInterval)
+
+def readConfig():
+    global timeout, checkInterval, sources
+
+    currentSource = None
+    file = open(getenv('HOME') + '/.config/catfriend', 'r')
+    re = regex("^\s*(?:([a-zA-Z]+)(?:\s+(\S+))?\s*)?(?:#.*)?$")
 
     checks = []
     for source in sources:
         checks.append(MailSource(source))
 
     while True:
-        for check in checks:
-            check.run()
-        sleep(checkInterval)
+        line = file.readline()
+        if not line: break
+        res = re.match(line)
+        if not res:
+            return line[:-1]
+
+        res = res.groups()
+        if res[0] is None: continue
+
+        if res[0] == "timeout":
+            timeout = int(res[1])
+        elif res[0] == "checkInterval":
+            checkInterval = int(res[1])
+        elif res[0] == "host":
+            if currentSource:
+                sources.append(currentSource)
+            currentSource = MailSource(res[1])
+        elif currentSource is None:
+            return line[:-1]
+        elif not res[1]:
+            if res[0] == "nossl":
+                currentSource.noSsl = True
+            else:
+                return line
+        elif res[0] == "id":
+            currentSource.id = res[1]
+        elif res[0] == "user":
+            currentSource.user = res[1]
+        elif res[0] == "password":
+            currentSource.password = res[1]
+
+    sources.append(currentSource)
 
 try:
-    execfile(getenv('HOME') + '/.config/catfriend')
+    res = readConfig()
+    if res:
+        print "bad config line " + res
     main()
 except KeyboardInterrupt:
     print "caught interrupt"
 except IOError:
     print "could load configuration file from " + getenv('HOME') + '/.config/catfriend'
+except IncompleteSource, e:
+    print e

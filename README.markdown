@@ -14,23 +14,18 @@ catfriend is python script that checks your e-mail and creates desktop notificat
 
 ## Configuration
 The configuration file lives at ~/.config/catfriend. Here is an example config:
-    sources = [
-        {
-            'id'       : 'work',  # name for account, used in notifications
-            'user'     : 'mrbossman@work.com',
-            'password' : 'supersecret,
-            'host'     : 'secure.work.com',
-            'no_ssl'   : True,  # ssl is on by default
-        },
-        {
-            # if id is not present the imap host is displayed instead
-            'user'     : 'myfriend@gmail.com',
-            'password' : 'superkit',
-            'host'     : 'imap.gmail.com',
-        },
-    ]
-    timeout       = 5000 # how many milliseconds notifications appear for
-    checkInterval = 60   # how many seconds to wait between checking
+    host secure.work.com
+        user      bossman@work.com
+        password  secure
+        nossl # turn off ssl, it is on by default
+
+    host imap.gmail.com
+        id        fun  # used instead of host in nofifications when available
+        user      friend@gmail.com
+        password  faptap
+
+    timeout        50000000 # in milliseconds
+    checkinterval  60   # in seconds
 
 ## Dependencies
 * python-notify
