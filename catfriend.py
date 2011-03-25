@@ -123,7 +123,7 @@ def readConfig():
         if not line: break
         res = re.match(line)
         if not res:
-            return line[:-1]
+            return line
 
         res = res.groups()
         if res[0] is None: continue
@@ -137,7 +137,7 @@ def readConfig():
                 sources.append(currentSource)
             currentSource = MailSource(res[1])
         elif currentSource is None:
-            return line[:-1]
+            return line
         elif not res[1]:
             if res[0] == "nossl":
                 currentSource.noSsl = True
@@ -149,13 +149,15 @@ def readConfig():
             currentSource.user = res[1]
         elif res[0] == "password":
             currentSource.password = res[1]
+        else:
+            return line
 
     sources.append(currentSource)
 
 try:
     res = readConfig()
     if res:
-        print "bad config line " + res
+        print "bad config line `" + res[:-1] + "'"
     main()
 except KeyboardInterrupt:
     print "caught interrupt"
