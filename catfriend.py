@@ -156,12 +156,14 @@ def readConfig():
 
 try:
     res = readConfig()
+except IOError:
+    print "could not load configuration file from " + getenv('HOME') + '/.config/catfriend'
+
+try:
     if res:
         print "bad config line `" + res[:-1] + "'"
     main()
 except KeyboardInterrupt:
     print "caught interrupt"
-except IOError:
-    print "could load configuration file from " + getenv('HOME') + '/.config/catfriend'
 except IncompleteSource, e:
     print e
