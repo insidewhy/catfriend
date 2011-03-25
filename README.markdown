@@ -16,7 +16,7 @@ catfriend is python script that checks your e-mail and creates desktop notificat
 The configuration file lives at ~/.config/catfriend. Here is an example config:
     sources = [
         {
-            'id'       : 'work',
+            'id'       : 'work',  # name for account, used in notifications
             'user'     : 'mrbossman@work.com',
             'password' : 'supersecret,
             'host'     : 'secure.work.com',
