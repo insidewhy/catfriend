@@ -6,6 +6,7 @@ catfriend is python script that checks your e-mail and creates desktop notificat
 * Can check multiple accounts.
 * Updates an account's notification if it has not been closed rather than creating duplicate notifications.
 * Supports IMAP accounts with or without SSL.
+* Does not punish the fearless.
 
 ## Installation
     $ git clone git://github.com/tuxjay/catfriend.git
