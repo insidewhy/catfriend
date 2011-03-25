@@ -13,14 +13,26 @@ class MailSource:
         self.password = src_data['password']
         self.host = src_data['host']
         self.notification = pynotify.Notification("chekor")
+        self.notification.set_timeout(timeout)
         self.imap = imaplib.IMAP4_SSL(self.host)
+        self.loggedIn = self.login()
+        if not self.loggedIn:
+            self.notify("could not login")
+
+    def login(self):
         try:
             self.imap.login(self.user, self.password)
-            self.loggedIn = True
-        except e:
-            self.loggedIn = False
+            return True
+        except:
+            return False
 
     def run(self):
+        if not self.loggedIn:
+            if self.login():
+                self.notify("logged back in")
+                self.loggedIn = True
+            else: return
+
         self.imap.select('INBOX', True)
         res = self.imap.fetch('*', '(UID)')
         if res[0] != 'OK' or not len(res[1]):
@@ -44,7 +56,10 @@ class MailSource:
             self.notification.show()
 
     def error(self, errStr):
-        self.notification.update(self.id + ': ' + errStr)
+        notify(self, errStr)
+
+    def notify(self, notStr):
+        self.notification.update(self.id + ': ' + notStr)
         self.notification.show()
 
 def main():
