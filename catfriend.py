@@ -51,12 +51,14 @@ class MailSource:
             self.error('bad line returned from fetch')
             return
 
-        lastUid = res[uidIdx + 1:brackIdx]
-        if lastUid > self.lastUid:
-            nMessages = res[:spaceIdx]
-            self.lastUid = lastUid
-            self.notification.update(self.id + ': ' + nMessages + ' messages')
-            self.notification.show()
+        try:
+            lastUid = int(res[uidIdx + 1:brackIdx])
+            if lastUid > self.lastUid:
+                nMessages = res[:spaceIdx]
+                self.lastUid = lastUid
+                self.notify(nMessages + ' messages')
+        except ValueError:
+            self.error('bad line returned from fetch')
 
     def error(self, errStr):
         notify(self, errStr)
@@ -80,7 +82,7 @@ def main():
 try:
     execfile(getenv('HOME') + '/.config/catfriend')
     main()
-except KeyboardInterrupt, e:
+except KeyboardInterrupt:
     print "caught interrupt"
-except IOError, e:
+except IOError:
     print "could load configuration file from " + getenv('HOME') + '/.config/catfriend'
