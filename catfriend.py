@@ -60,7 +60,11 @@ class MailSource:
                 self.loggedIn = True
             else: return
 
-        self.imap.select('INBOX', True)
+        res = self.imap.select('INBOX', True)
+        if res[0] != 'OK':
+            self.error('problem with IMAP select: ' + res[1])
+            return
+
         res = self.imap.fetch('*', '(UID)')
         if res[0] != 'OK' or not len(res[1]):
             self.error('problem with fetch')
