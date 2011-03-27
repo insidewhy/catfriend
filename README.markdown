@@ -9,9 +9,11 @@ catfriend is python script that checks your e-mail and creates desktop notificat
 * Does not punish the fearless.
 
 ## Installation
-    $ git clone git://github.com/tuxjay/catfriend.git
-    $ cp catfriend/catfriend.example ~/.config/catfriend
-    $ ./catfriend/catfriend.py
+    $ tar xzvf catfriend-*.tar.gz
+    $ cd catfriend-*/
+    $ cp catfriend.example ~/.config/catfriend
+    $ edit ~/.config/catfriend  # with your favourite editor. mine is vim!
+    $ ./catfriend.py            # or you can copy this script to your $PATH
 
 ## Configuration
 The configuration file lives at ~/.config/catfriend. Here is an example config:
