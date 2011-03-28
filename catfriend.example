@@ -8,7 +8,7 @@ host imap.gmail.com
     user      friend@gmail.com
     password  faptap
 
-# time notification remains on screen in milliseconds, the rest are in seconds
+# time notification remains on screen in milliseconds
 notificationTimeout    10000
-socketTimeout          60
-checkInterval          60
+socketTimeout          60  # server socket timeout in seconds
+checkInterval          60  # how often to wait between checks in seconds
