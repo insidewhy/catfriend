@@ -26,6 +26,13 @@ class MailSource:
         self.password = None
         self.noSsl = False
 
+    def reconnect(self):
+        self.imap.shutdown()
+        self.imap.open(self.host)
+        self.loggedIn = self.login()
+        if not self.loggedIn:
+            self.error("could not login after reconnection")
+
     def init(self):
         self.lastUid      = 0
         self.notification = pynotify.Notification("catfriend")
@@ -44,7 +51,7 @@ class MailSource:
 
         self.loggedIn = self.login()
         if not self.loggedIn:
-            self.notify("could not login")
+            self.error("could not login")
 
     def login(self):
         try:
@@ -53,7 +60,7 @@ class MailSource:
         except:
             return False
 
-    def run(self):
+    def __run(self):
         if not self.loggedIn:
             if self.login():
                 self.notify("logged back in")
@@ -90,6 +97,13 @@ class MailSource:
                 self.notify(nMessages + ' messages')
         except ValueError:
             self.error('bad line returned from fetch')
+
+    def run(self):
+        try:
+            self.__run()
+        except socket.error:
+            self.error("server closed socket, reconnecting")
+            self.reconnect()
 
     def error(self, errStr):
         notify(self, errStr)
