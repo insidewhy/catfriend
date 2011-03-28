@@ -62,7 +62,10 @@ class MailSource:
 
         res = self.imap.select('INBOX', True)
         if res[0] != 'OK':
-            self.error('problem with IMAP select: ' + res[1])
+            if len(res[1]):
+                self.error('bad response to IMAP select: ' + res[1][0])
+            else:
+                self.error('unknown response to IMAP select')
             return
 
         res = self.imap.fetch('*', '(UID)')
