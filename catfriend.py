@@ -8,7 +8,8 @@ from io import open
 from re import compile as regex
 
 sources              = []
-notificationTimeout  = 10000
+notificationTimeout  = 10000 # milliseconds, rest are in seconds
+socketTimeout        = 60
 checkInterval        = 60
 
 class IncompleteSource(Exception):
@@ -54,6 +55,7 @@ class MailSource:
             self.error("could not login")
 
     def login(self):
+        self.imap.socket().settimeout(socketTimeout)
         try:
             self.imap.login(self.user, self.password)
             return True
@@ -102,7 +104,10 @@ class MailSource:
         try:
             self.__run()
         except socket.error:
-            self.error("server closed socket, reconnecting")
+            self.error("closed socket, reconnecting")
+            self.reconnect()
+        except socket.timeout:
+            self.error("socket timeout, reconnecting")
             self.reconnect()
 
     def error(self, errStr):
@@ -129,7 +134,7 @@ def main():
         sleep(checkInterval)
 
 def readConfig():
-    global notificationTimeout, checkInterval, sources
+    global notificationTimeout, socketTimeout, checkInterval, sources
 
     currentSource = None
     file = open(getenv('HOME') + '/.config/catfriend', 'r')
@@ -151,6 +156,8 @@ def readConfig():
 
         if res[0] == "notificationTimeout":
             notificationTimeout = int(res[1])
+        elif res[0] == "socketTimeout":
+            socketTimeout = int(res[1])
         elif res[0] == "checkInterval":
             checkInterval = int(res[1])
         elif res[0] == "host":
