@@ -7,9 +7,9 @@ from os import getenv
 from io import open
 from re import compile as regex
 
-sources       = []
-timeout       = 10000
-checkInterval = 60
+sources              = []
+notificationTimeout  = 10000
+checkInterval        = 60
 
 class IncompleteSource(Exception):
     def __init__(self, id, value):
@@ -36,7 +36,7 @@ class MailSource:
     def init(self):
         self.lastUid      = 0
         self.notification = pynotify.Notification("catfriend")
-        self.notification.set_timeout(timeout)
+        self.notification.set_timeout(notificationTimeout)
 
         if self.user is None:
             raise IncompleteSource(self.id, "missing user")
@@ -129,7 +129,7 @@ def main():
         sleep(checkInterval)
 
 def readConfig():
-    global timeout, checkInterval, sources
+    global notificationTimeout, checkInterval, sources
 
     currentSource = None
     file = open(getenv('HOME') + '/.config/catfriend', 'r')
@@ -149,8 +149,8 @@ def readConfig():
         res = res.groups()
         if res[0] is None: continue
 
-        if res[0] == "timeout":
-            timeout = int(res[1])
+        if res[0] == "notificationTimeout":
+            notificationTimeout = int(res[1])
         elif res[0] == "checkInterval":
             checkInterval = int(res[1])
         elif res[0] == "host":
@@ -183,7 +183,8 @@ except IOError:
 try:
     if res:
         print "bad config line `" + res[:-1] + "'"
-    main()
+    else:
+        main()
 except KeyboardInterrupt:
     print "caught interrupt"
 except IncompleteSource, e:

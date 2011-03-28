@@ -27,8 +27,9 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
         user      friend@gmail.com
         password  faptap
 
-    timeout        50000000 # in milliseconds
-    checkInterval  60   # in seconds
+    # time notification remains on screen in milliseconds
+    notificationTimeout    10000
+    checkInterval          60   # in seconds
 
 ## Dependencies
 * python-notify
