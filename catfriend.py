@@ -107,7 +107,7 @@ class MailSource:
         except socket.error:
             self.error("closed socket, reconnecting")
             self.reconnect()
-        except imaplib.abort:
+        except imaplib.IMAP4.abort:
             self.error("imaplib abort error, reconnecting")
             self.reconnect()
         except socket.timeout:
@@ -115,7 +115,7 @@ class MailSource:
             self.reconnect()
 
     def error(self, errStr):
-        notify(self, errStr)
+        self.notify(self, errStr)
 
     def notify(self, notStr):
         self.notification.update(self.id + ': ' + notStr)
@@ -124,8 +124,7 @@ class MailSource:
     def __str__(self):
         return self.id
 
-
-def main():
+def __main():
     global sources
     pynotify.init("basics")
 
@@ -186,17 +185,21 @@ def readConfig():
 
     sources.append(currentSource)
 
-try:
-    res = readConfig()
-except IOError:
-    print "could not load configuration file from " + getenv('HOME') + '/.config/catfriend'
+def main():
+    try:
+        res = readConfig()
+    except IOError:
+        print "could not load configuration file from " + getenv('HOME') + '/.config/catfriend'
+        return
 
-try:
-    if res:
-        print "bad config line `" + res[:-1] + "'"
-    else:
-        main()
-except KeyboardInterrupt:
-    print "caught interrupt"
-except IncompleteSource, e:
-    print e
+    try:
+        if res:
+            print "bad config line `" + res[:-1] + "'"
+        else:
+            __main()
+    except KeyboardInterrupt:
+        print "caught interrupt"
+    except IncompleteSource, e:
+        print e
+
+main()
