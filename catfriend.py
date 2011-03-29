@@ -107,6 +107,9 @@ class MailSource:
         except socket.error:
             self.error("closed socket, reconnecting")
             self.reconnect()
+        except imaplib.abort:
+            self.error("imaplib abort error, reconnecting")
+            self.reconnect()
         except socket.timeout:
             self.error("socket timeout, reconnecting")
             self.reconnect()
