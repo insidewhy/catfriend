@@ -2,6 +2,7 @@
 
 import imaplib
 import pynotify
+import socket
 from time import sleep
 from os import getenv
 from io import open
