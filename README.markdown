@@ -29,8 +29,9 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
 
     # time notification remains on screen in milliseconds
     notificationTimeout    10000
-    socketTimeout          60  # server socket timeout in seconds
-    checkInterval          60  # how often to wait between checks in seconds
+    errorTimeout           60000  # as above but for error notifications
+    socketTimeout          60     # server socket timeout in seconds
+    checkInterval          60     # how often to wait between checks in seconds
 
 ## Dependencies
 * python-notify

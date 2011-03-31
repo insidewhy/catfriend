@@ -1,17 +1,24 @@
 #!/usr/bin/env python2
 
+from getopt import getopt, GetoptError
 import imaplib
 import pynotify
 import socket
 from time import sleep
 from os import getenv
 from io import open
+from sys import exc_info, argv
 from re import compile as regex
 
+CATFRIEND_VERSION = "0.9"
+CATFRIEND_NAME    = "sprayfriend"
+
 sources              = []
-notificationTimeout  = 10000 # milliseconds, rest are in seconds
+notificationTimeout  = 10000 # milliseconds
+errorTimeout         = 60000 # milliseconds, rest are in seconds
 socketTimeout        = 60
 checkInterval        = 60
+verbose              = False
 
 class IncompleteSource(Exception):
     def __init__(self, id, value):
@@ -28,14 +35,24 @@ class MailSource:
         self.password = None
         self.noSsl = False
 
-    def reconnect(self):
+    def reconnect(self, errStr):
+        self.error(errStr + " - reconnecting")
         self.imap.shutdown()
-        self.imap.open(self.host)
+        if not self.imap.open(self.host):
+            self.loggedIn = False
+            self.disconnected = True
+            self.error(errStr + " - could not connect")
+            return
+
+        self.disconnected = False
         self.loggedIn = self.login()
         if not self.loggedIn:
-            self.error("could not login after reconnection")
+            self.error(errStr + " - connected but could not login")
+        else:
+            self.error(errStr + " - logged in")
 
     def init(self):
+        self.disconnected = False
         self.lastUid      = 0
         self.notification = pynotify.Notification("catfriend")
         self.notification.set_timeout(notificationTimeout)
@@ -56,7 +73,13 @@ class MailSource:
             self.error("could not login")
 
     def login(self):
+        if self.disconnected:
+            if self.imap.open(self.host):
+                self.disconnected = False
+            else: return False
+
         self.imap.socket().settimeout(socketTimeout)
+
         try:
             self.imap.login(self.user, self.password)
             return True
@@ -87,7 +110,7 @@ class MailSource:
         spaceIdx = res.find(' ')
         uidIdx = res.find(' ', spaceIdx + 1)
         brackIdx = res.find(')', uidIdx)
-        
+
         if uidIdx == -1 or brackIdx == -1:
             self.error('bad line returned from fetch')
             return
@@ -105,19 +128,19 @@ class MailSource:
         try:
             self.__run()
         except socket.error:
-            self.error("closed socket, reconnecting")
-            self.reconnect()
-        except imaplib.IMAP4.abort:
-            self.error("imaplib abort error, reconnecting")
-            self.reconnect()
+            self.reconnect("socket error")
         except socket.timeout:
-            self.error("socket timeout, reconnecting")
-            self.reconnect()
+            self.reconnect("socket timeout")
+        except imaplib.IMAP4.abort:
+            self.reconnect("imaplib abort error")
 
     def error(self, errStr):
-        self.notify(self, errStr)
+        self.notify(errStr)
 
     def notify(self, notStr):
+        if verbose:
+            print(self.id + ': ' + notStr)
+
         self.notification.update(self.id + ': ' + notStr)
         self.notification.show()
 
@@ -137,7 +160,8 @@ def __main():
         sleep(checkInterval)
 
 def readConfig():
-    global notificationTimeout, socketTimeout, checkInterval, sources
+    global notificationTimeout, errorTimeout, socketTimeout, \
+           checkInterval, sources
 
     currentSource = None
     file = open(getenv('HOME') + '/.config/catfriend', 'r')
@@ -159,6 +183,8 @@ def readConfig():
 
         if res[0] == "notificationTimeout":
             notificationTimeout = int(res[1])
+        elif res[0] == "errorTimeout":
+            errorTimeout = int(res[1])
         elif res[0] == "socketTimeout":
             socketTimeout = int(res[1])
         elif res[0] == "checkInterval":
@@ -185,21 +211,52 @@ def readConfig():
 
     sources.append(currentSource)
 
+def usage():
+    print "catfriend", CATFRIEND_VERSION, CATFRIEND_NAME
+    print "usage: catfriend [args]"
+    print "  -h  show help"
+    print "  -v  increase verbosity"
+
 def main():
+    global verbose
+
+    try:
+        opts, args = getopt(argv[1:], "hv")
+    except GetoptError, e:
+        print(e)
+        usage()
+        return
+
+    for o, a in opts:
+        if o == "-v":
+            verbose = True
+        elif o == "-h":
+            usage()
+            return
+
     try:
         res = readConfig()
     except IOError:
         print "could not load configuration file from " + getenv('HOME') + '/.config/catfriend'
         return
 
+    if res:
+        print "bad config line `" + res[:-1] + "'"
+        return
+
     try:
-        if res:
-            print "bad config line `" + res[:-1] + "'"
-        else:
-            __main()
+        __main()
+        return
+    except KeyboardInterrupt   : raise
+    except IncompleteSource, e : print e
+    except                     : print("unknown error:", exc_info()[0])
+
+    errNot = pynotify.Notification("catfriend exiting due to error")
+    errNot.set_timeout(errorTimeout)
+    errNot.show()
+
+if __name__ == "__main__":
+    try:
+        main()
     except KeyboardInterrupt:
         print "caught interrupt"
-    except IncompleteSource, e:
-        print e
-
-main()
