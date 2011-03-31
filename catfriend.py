@@ -7,8 +7,9 @@ import socket
 from time import sleep
 from os import getenv
 from io import open
-from sys import exc_info, argv
+from sys import exc_info, argv, stdout
 from re import compile as regex
+from traceback import print_exc
 
 CATFRIEND_VERSION = "0.9"
 CATFRIEND_NAME    = "sprayfriend"
@@ -26,6 +27,15 @@ class IncompleteSource(Exception):
         self.value = value
     def __str__(self):
         return self.id + ': ' + self.value
+
+class Notification:
+    def __init__(self):
+        self.notification = pynotify.Notification("catfriend")
+        self.notification.set_timeout(notificationTimeout)
+
+    def update(self, string):
+        self.notification.update(string)
+        self.notification.show()
 
 class MailSource:
     def __init__(self, host):
@@ -54,8 +64,7 @@ class MailSource:
     def init(self):
         self.disconnected = False
         self.lastUid      = 0
-        self.notification = pynotify.Notification("catfriend")
-        self.notification.set_timeout(notificationTimeout)
+        self.notification = Notification()
 
         if self.user is None:
             raise IncompleteSource(self.id, "missing user")
@@ -142,14 +151,12 @@ class MailSource:
             print(self.id + ': ' + notStr)
 
         self.notification.update(self.id + ': ' + notStr)
-        self.notification.show()
 
     def __str__(self):
         return self.id
 
 def __main():
     global sources
-    pynotify.init("basics")
 
     for source in sources:
         source.init()
@@ -245,11 +252,14 @@ def main():
         return
 
     try:
+        pynotify.init("basics")
         __main()
         return
     except KeyboardInterrupt   : raise
     except IncompleteSource, e : print e
-    except                     : print("unknown error:", exc_info()[0])
+    except:
+        print "unknown error:", exc_info()[0]
+        print_exc(file=stdout)
 
     errNot = pynotify.Notification("catfriend exiting due to error")
     errNot.set_timeout(errorTimeout)
