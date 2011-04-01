@@ -46,14 +46,16 @@ class MailSource:
         self.noSsl = False
 
     def reconnect(self, errStr):
-        self.error(errStr + " - reconnecting")
-        self.imap.shutdown()
-        if not self.imap.open(self.host):
-            self.loggedIn = False
-            self.disconnected = True
-            self.error(errStr + " - could not connect")
+        try:
+            self.__reconnect(errStr)
+        except:
+            self.error(errStr + " - could not reconnect")
             return
 
+    def __reconnect(self, errStr):
+        self.error(errStr + " - reconnecting")
+        self.imap.shutdown()
+        self.imap = imaplib.IMAP4(self.host)
         self.disconnected = False
         self.loggedIn = self.login()
         if not self.loggedIn:
@@ -83,9 +85,9 @@ class MailSource:
 
     def login(self):
         if self.disconnected:
-            if self.imap.open(self.host):
-                self.disconnected = False
-            else: return False
+            self.imap.shutdown()
+            self.imap = imaplib.IMAP4(self.host)
+            self.disconnected = False
 
         self.imap.socket().settimeout(socketTimeout)
 
