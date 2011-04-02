@@ -1,6 +1,11 @@
-.PHONY: dist
+.PHONY: test dist
+
+test:
+	${MAKE} -C test
 
 dist:
 	ver=`git tag | tail -n 1`; \
 	git archive --prefix=catfriend-$$ver/ $$ver | \
 		gzip > catfriend-$$ver.tar.gz -
+
+-include Makefile.local

@@ -66,7 +66,6 @@ class MailSource:
             self.error(errStr + " - reconnected and logged in")
 
     def init(self):
-        self.disconnected = False
         self.lastUid      = 0
         self.notification = Notification()
 
@@ -80,6 +79,8 @@ class MailSource:
             self.imap = imaplib.IMAP4(self.host)
         else:
             self.imap = imaplib.IMAP4_SSL(self.host)
+
+        self.disconnected = False
 
         self.loggedIn = self.login()
         if not self.loggedIn:

@@ -1,4 +1,4 @@
-#include "client.hpp"
+#include <catfriend/ImapClient.hpp>
 
 namespace asio = boost::asio;
 
@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
         asio::ip::tcp::resolver::query query(argv[1], "imaps");
         asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
-        catfriend::ssl_client c1(io_service, iterator, argv[2], argv[3]);
+        catfriend::imap::SslClient c1(io_service, iterator, argv[2], argv[3]);
 
         io_service.run();
     }

@@ -6,36 +6,36 @@
 #include <cstring>
 #include <string>
 
-namespace catfriend {
+namespace catfriend { namespace imap {
 
 namespace asio = boost::asio;
 
 int const MAX_LENGTH = 1024 * 4;
 
-struct client;
+struct Client;
 
-template <class T = client>
-struct basic_client {
+template <class T = Client>
+struct BasicClient {
     T&       mixin()       { return static_cast<T &>(*this); }
     T const& mixin() const { return static_cast<T &>(*this); }
 };
 
-struct client : basic_client<client> {};
+struct Client : BasicClient<Client> {};
 
-struct ssl_client : basic_client<ssl_client> {
-    void handle_connect(boost::system::error_code const&    error,
-                        asio::ip::tcp::resolver::iterator   endpoint_iterator)
+struct SslClient : BasicClient<SslClient> {
+    void handleConnect(boost::system::error_code const&    error,
+                       asio::ip::tcp::resolver::iterator   endpoint_iterator)
     {
         if (! error) {
             socket_.async_handshake(asio::ssl::stream_base::client,
-                boost::bind(&ssl_client::handle_handshake, this,
+                boost::bind(&SslClient::handleHandshake, this,
                     asio::placeholders::error));
         }
         else if (endpoint_iterator != asio::ip::tcp::resolver::iterator()) {
             socket_.lowest_layer().close();
             asio::ip::tcp::endpoint endpoint = *endpoint_iterator;
             socket_.lowest_layer().async_connect(endpoint,
-                    boost::bind(&ssl_client::handle_connect, this,
+                    boost::bind(&SslClient::handleConnect, this,
                         asio::placeholders::error, ++endpoint_iterator));
         }
         else {
@@ -43,7 +43,7 @@ struct ssl_client : basic_client<ssl_client> {
         }
     }
 
-    void handle_handshake(boost::system::error_code const & error) {
+    void handleHandshake(boost::system::error_code const & error) {
         if (error) {
             // TODO: report error
             return;
@@ -61,20 +61,20 @@ struct ssl_client : basic_client<ssl_client> {
 
         asio::async_write(socket_,
                 asio::buffer(request_, ptr - request_ + 1),
-                boost::bind(&ssl_client::handle_write, this,
+                boost::bind(&SslClient::handleWrite, this,
                     asio::placeholders::error,
                     asio::placeholders::bytes_transferred));
 
         asio::async_read(socket_,
                 asio::buffer(response_, MAX_LENGTH),
                 asio::transfer_at_least(1),
-                boost::bind(&ssl_client::handle_read, this,
+                boost::bind(&SslClient::handleRead, this,
                     asio::placeholders::error,
                     asio::placeholders::bytes_transferred));
     }
 
-    void handle_write(boost::system::error_code const& error,
-                      size_t const                     n_bytes)
+    void handleWrite(boost::system::error_code const& error,
+                     size_t const                     n_bytes)
     {
         if (error) {
             // TODO: report error
@@ -82,8 +82,8 @@ struct ssl_client : basic_client<ssl_client> {
         }
     }
 
-    void handle_read(boost::system::error_code const& error,
-                     size_t const                     n_bytes)
+    void handleRead(boost::system::error_code const& error,
+                    size_t const                     n_bytes)
     {
         if (error) {
             // TODO: report error
@@ -96,15 +96,15 @@ struct ssl_client : basic_client<ssl_client> {
         asio::async_read(socket_,
                 asio::buffer(response_, MAX_LENGTH),
                 asio::transfer_at_least(1),
-                boost::bind(&ssl_client::handle_read, this,
+                boost::bind(&SslClient::handleRead, this,
                     asio::placeholders::error,
                     asio::placeholders::bytes_transferred));
     }
 
-    ssl_client(asio::io_service&                 io_service,
-               asio::ip::tcp::resolver::iterator endpoint_iterator,
-               std::string const&                user,
-               std::string const&                password)
+    SslClient(asio::io_service&                 io_service,
+              asio::ip::tcp::resolver::iterator endpoint_iterator,
+              std::string const&                user,
+              std::string const&                password)
       : ssl_ctxt_(io_service, asio::ssl::context::sslv23),
         socket_(io_service, ssl_ctxt_),
         user_(user), password_(password)
@@ -112,7 +112,7 @@ struct ssl_client : basic_client<ssl_client> {
         ssl_ctxt_.set_verify_mode(asio::ssl::context::verify_none);
         asio::ip::tcp::endpoint endpoint = *endpoint_iterator;
         socket_.lowest_layer().async_connect(endpoint,
-                boost::bind(&ssl_client::handle_connect, this,
+                boost::bind(&SslClient::handleConnect, this,
                     asio::placeholders::error, ++endpoint_iterator));
     }
 
@@ -125,4 +125,4 @@ struct ssl_client : basic_client<ssl_client> {
     std::string                              password_;
 };
 
-}
+} }
