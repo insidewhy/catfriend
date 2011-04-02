@@ -1,4 +1,22 @@
-.PHONY: test dist
+.PHONY: build test dist
+
+O := .obj
+
+ifeq ($(wildcard ${O}),)
+
+build:
+	mkdir ${O} && cd ${O} && cmake ..
+
+else
+.PHONY: clean
+
+build:
+	${MAKE} -C ${O}
+
+clean:
+	rm -rf ${O}
+
+endif
 
 test:
 	${MAKE} -C test
