@@ -48,6 +48,8 @@ class MailSource:
     def reconnect(self, errStr):
         try:
             self.__reconnect(errStr)
+        except KeyboardInterrupt:
+            raise
         except:
             self.error(errStr + " - could not reconnect")
             return
@@ -59,9 +61,9 @@ class MailSource:
         self.disconnected = False
         self.loggedIn = self.login()
         if not self.loggedIn:
-            self.error(errStr + " - connected but could not login")
+            self.error(errStr + " - reconnected but could not login")
         else:
-            self.error(errStr + " - logged in")
+            self.error(errStr + " - reconnected and logged in")
 
     def init(self):
         self.disconnected = False
@@ -149,9 +151,7 @@ class MailSource:
         self.notify(errStr)
 
     def notify(self, notStr):
-        if verbose:
-            print(self.id + ': ' + notStr)
-
+        if verbose: print(self.id + ': ' + notStr)
         self.notification.update(self.id + ': ' + notStr)
 
     def __str__(self):
