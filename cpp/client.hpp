@@ -20,8 +20,7 @@ struct basic_client {
     T const& mixin() const { return static_cast<T &>(*this); }
 };
 
-struct client : basic_client<client> {
-};
+struct client : basic_client<client> {};
 
 struct ssl_client : basic_client<ssl_client> {
     void handle_connect(boost::system::error_code const&    error,
