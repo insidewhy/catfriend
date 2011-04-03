@@ -1,4 +1,4 @@
-.PHONY: build test dist
+.PHONY: build dist
 
 O := .obj
 
@@ -17,9 +17,6 @@ clean:
 	rm -rf ${O}
 
 endif
-
-test:
-	${MAKE} -C test
 
 dist:
 	ver=`git tag | tail -n 1`; \

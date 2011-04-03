@@ -22,10 +22,6 @@ bool checkError(const char* msg, const DBusError* error) {
 }
 
 int main(int argc, char** argv) {
-    DBusConnection* bus = 0;
-    DBusMessage* msg = 0;
-    DBusError error;
-
     const char* appName = "type";
     const char* summary = "Hello World!";
     const char* notBody = "Hello World!";
@@ -34,9 +30,10 @@ int main(int argc, char** argv) {
     int replacesId = 0;
     int timeout = 5000;
 
+    DBusError error;
     dbus_error_init(&error);
 
-    bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
+    DBusConnection *bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
     if (checkError("Failed to open Session bus\n", &error)) return 1;
     assert(bus);
 
@@ -44,7 +41,7 @@ int main(int argc, char** argv) {
     if (checkError("Failed to check for name ownership\n", &error)) {
         return 1;
     }
-    msg = dbus_message_new_method_call(
+    DBusMessage* msg = dbus_message_new_method_call(
         CF_NOTIFY_NAME, CF_NOTIFY_OPATH, CF_NOTIFY_IFACE, CF_NOTIFY_NOTE);
     if (! msg) return 1;
 
@@ -63,12 +60,14 @@ int main(int argc, char** argv) {
             DBUS_TYPE_INVALID))
     { return 1; }
 
-    if (! dbus_connection_send_with_reply_and_block(bus, msg, 5000, 0)) {
-        return 1;
-    }
+    DBusMessage* response =
+        dbus_connection_send_with_reply_and_block(bus, msg, 5000, 0);
+
+    if (! response) return 1;
 
     // dbus_connection_flush(bus);
     dbus_message_unref(msg);
+    dbus_message_unref(response);
     msg = 0;
 
     dbus_connection_unref(bus);
