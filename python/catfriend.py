@@ -52,18 +52,26 @@ class MailSource:
             raise
         except:
             self.error(errStr + " - could not reconnect")
+            print_exc(file=stdout)
             return
 
     def __reconnect(self, errStr):
         self.error(errStr + " - reconnecting")
         self.imap.shutdown()
-        self.imap = imaplib.IMAP4(self.host)
+        self.__connect()
         self.disconnected = False
         self.loggedIn = self.login()
         if not self.loggedIn:
             self.error(errStr + " - reconnected but could not login")
         else:
             self.error(errStr + " - reconnected and logged in")
+
+    def __connect(self):
+        if self.noSsl:
+            self.imap = imaplib.IMAP4(self.host)
+        else:
+            self.imap = imaplib.IMAP4_SSL(self.host)
+        self.disconnected = False
 
     def init(self):
         self.lastUid      = 0
@@ -75,12 +83,7 @@ class MailSource:
         if self.password is None:
             raise IncompleteSource("missing password")
 
-        if self.noSsl:
-            self.imap = imaplib.IMAP4(self.host)
-        else:
-            self.imap = imaplib.IMAP4_SSL(self.host)
-
-        self.disconnected = False
+        self.__connect()
 
         self.loggedIn = self.login()
         if not self.loggedIn:
@@ -89,8 +92,7 @@ class MailSource:
     def login(self):
         if self.disconnected:
             self.imap.shutdown()
-            self.imap = imaplib.IMAP4(self.host)
-            self.disconnected = False
+            self.__connect()
 
         self.imap.socket().settimeout(socketTimeout)
 
