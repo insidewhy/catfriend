@@ -13,7 +13,7 @@ catfriend is python script that checks your e-mail and creates desktop notificat
     $ cd catfriend-*/
     $ cp catfriend.example ~/.config/catfriend
     $ edit ~/.config/catfriend  # with your favourite editor. mine is vim!
-    $ ./catfriend.py            # or you can copy this script to your $PATH
+    $ ./python/catfriend.py     # or you can copy this script to your $PATH
 
 ## Configuration
 The configuration file lives at ~/.config/catfriend. Here is an example config:
@@ -32,6 +32,9 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
     errorTimeout           60000  # as above but for error notifications
     socketTimeout          60     # server socket timeout in seconds
     checkInterval          60     # how often to wait between checks in seconds
+
+## TODO
+* Rewrite in C++ and use IMAP idle command rather than polling for instant notifications.
 
 ## Dependencies
 * python-notify
