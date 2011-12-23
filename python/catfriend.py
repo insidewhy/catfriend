@@ -4,6 +4,7 @@ from getopt import getopt, GetoptError
 import imaplib
 import pynotify
 import socket
+import threading
 from time import sleep
 from os import getenv
 from io import open
@@ -11,8 +12,8 @@ from sys import exc_info, argv, stdout
 from re import compile as regex
 from traceback import print_exc
 
-CATFRIEND_VERSION = "0.9"
-CATFRIEND_NAME    = "sprayfriend"
+CATFRIEND_VERSION = "1"
+CATFRIEND_NAME    = "arpacasio"
 
 sources              = []
 notificationTimeout  = 10000 # milliseconds
@@ -37,13 +38,15 @@ class Notification:
         self.notification.update(string)
         self.notification.show()
 
-class MailSource:
+class MailSource(threading.Thread):
     def __init__(self, host):
         self.host = host
         self.id = host
         self.user = None
         self.password = None
         self.noSsl = False
+        self.stopped = False
+        threading.Thread.__init__(self)
 
     def reconnect(self, errStr):
         try:
@@ -74,6 +77,7 @@ class MailSource:
         self.disconnected = False
 
     def init(self):
+        self.condition    = threading.Condition()
         self.lastUid      = 0
         self.notification = Notification()
 
@@ -141,14 +145,25 @@ class MailSource:
             self.error('bad line returned from fetch')
 
     def run(self):
-        try:
-            self.__run()
-        except socket.error:
-            self.reconnect("socket error")
-        except socket.timeout:
-            self.reconnect("socket timeout")
-        except imaplib.IMAP4.abort:
-            self.reconnect("imaplib abort error")
+        self.condition.acquire()
+        global checkInterval
+        while not self.stopped:
+            try:
+                self.__run()
+                self.condition.wait(checkInterval)
+            except socket.error:
+                self.reconnect("socket error")
+            except socket.timeout:
+                self.reconnect("socket timeout")
+            except imaplib.IMAP4.abort:
+                self.reconnect("imaplib abort error")
+
+    def stop(self):
+        # call this from master thread
+        self.stopped = True
+        self.condition.acquire()
+        self.condition.notify()
+        self.condition.release()
 
     def error(self, errStr):
         self.notify(errStr)
@@ -160,16 +175,24 @@ class MailSource:
     def __str__(self):
         return self.id
 
-def __main():
+def run():
     global sources
 
     for source in sources:
         source.init()
 
-    while True:
+    for source in sources:
+        source.start()
+
+    try:
+        # to allow keyboard interrupt to be caught
+        while True: sleep(100)
+    except KeyboardInterrupt:
         for source in sources:
-            source.run()
-        sleep(checkInterval)
+            source.stop()
+
+    for source in sources:
+        source.join()
 
 def readConfig():
     global notificationTimeout, errorTimeout, socketTimeout, \
@@ -258,7 +281,7 @@ def main():
 
     try:
         pynotify.init("basics")
-        __main()
+        run()
         return
     except KeyboardInterrupt   : raise
     except IncompleteSource, e : print e

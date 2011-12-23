@@ -35,7 +35,7 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
     checkInterval          60     # how often to wait between checks in seconds
 
 ## TODO
-* Rewrite in C++ and use IMAP idle command rather than polling for instant notifications.
+* Use IMAP idle rather than polling
 
 ## Dependencies
 * python-notify
