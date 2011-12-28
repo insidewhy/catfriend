@@ -1,12 +1,12 @@
 Gem::Specification.new do |s|
     s.name        = "catfriend"
-    s.version     = "0.9"
+    s.version     = "0.0"
     s.platform    = Gem::Platform::RUBY
     s.authors     = ["James Pike"]
     s.email       = ["catfriend@chilon.net"]
     s.homepage    = "http://chilon.net/catfriend"
     s.summary     = "E-mail checker with desktop notifications."
-    s.description = "Based on libnotify, Does not punish the fearless."
+    s.description = "E-mail checker with libnotify desktop notifications."
 
     s.required_rubygems_version = ">= 1.3"
 
