@@ -1,1 +1,105 @@
 #!/usr/bin/env ruby
+
+module Catfriend
+
+require 'net/imap'
+
+stderr_bak = $stderr.dup  # prevent deprecation warnings from xdg module
+$stderr.reopen '/dev/null', 'w'
+require 'xdg'
+$stderr = stderr_bak # restore stderr
+
+# mixin this module and define "run"
+module ThreadMixin
+    def start ; @thread = Thread.new { run } ; end
+    def join ; @thread.join ; end
+end
+
+# provide configure which allows all instance variables with write
+# accessors declared to be set from a hash
+module AccessorsFromHash
+    def configure args
+        args.each do |opt, val|
+            instance_variable_set("@#{opt}", val) if respond_to? "#{opt}="
+        end
+    end
+end
+
+class ImapServer
+    include ThreadMixin
+    include AccessorsFromHash
+
+    class ConfigError < Exception ; end
+
+    def initialize(args = nil)
+        configure args if args
+    end
+
+    # ThreadMixin interface
+    def run
+        # connect and go
+        begin
+            connect
+        rescue OpenSSL::SSL::SSLError
+            puts "ssl error, try providing certificate"
+        rescue Net::IMAP::NoResponseError
+            puts "no response to connect, try ssl"
+        rescue ConfigError => e
+            puts "imap server misconfiguration: " + e.message
+        else
+            check_loop
+        end
+    end
+
+    def check_loop
+        #
+    end
+
+    def connect
+        if not @user
+            raise ConfigError, "user not set"
+        end
+        if not @host
+            raise ConfigError, "host not set"
+        end
+        if not @password
+            raise ConfigError, "password not set"
+        end
+
+        args = nil
+        if not @no_ssl then
+            if @cert_file then
+                args = { :ssl => { :ca_file => @cert_file } }
+            else
+                args = { :ssl => true }
+            end
+        end
+        @imap = Net::IMAP.new(@host, args)
+        @imap.login(@user, @password)
+        puts @imap.select 'INBOX'
+    end
+
+    private :connect, :check_loop, :run
+    attr_writer :host, :password, :user, :no_ssl, :cert_file
+end
+
+def self.parse_config
+    config_file = XDG['CONFIG'].find 'catfriend'
+    config_file ||= "#{ENV['HOME']}/.config/catfriend"
+
+    servers = []
+
+    # TODO: parse config file
+
+    servers
+end
+
+def self.main
+    servers = parse_config
+    servers.each { |s| s.start }
+    servers.each { |s| s.join }
+end
+
+end ########################### end module
+
+Catfriend.main if __FILE__ == $0

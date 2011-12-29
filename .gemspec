@@ -13,4 +13,5 @@ Gem::Specification.new do |s|
     s.files        = %w(LICENSE)
     s.executables  = ['catfriend']
     s.add_dependency('ruby-libnotify', '>=0.5')
+    s.add_dependency('ruby-xdg', '>=2')
 end
