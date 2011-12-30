@@ -1,14 +1,28 @@
 # Catfriend
 
-catfriend is python script that checks your e-mail and creates desktop notifications using dbus. It can create notifications on all window managers that support the freedesktop notification specification including KDE, Gnome, Awesome.
+catfriend is a program that checks your e-mail and creates desktop notifications using dbus. It can create notifications on all window managers that support the freedesktop notification specification including KDE, Gnome, Awesome.
+
+Ruby and Python versions are provided.
 
 ## Features
 * Can check multiple accounts.
+* Simple configuration file format.
 * Updates an account's notification if it has not been closed rather than creating duplicate notifications.
 * Supports IMAP accounts with or without SSL.
 * Does not punish the fearless.
 
 ## Installation
+
+### Ruby version
+The fourth step is only necessary if you are using a mail-server with a self-signed SSL certificate. This is a security measure to protect you from spoofing.
+
+    $ sudo gem install catfriend
+    $ cd ~/.config/catfriend
+    $ edit catfriend
+    $ wget http://location.to/ssl-certificate.pem
+    $ catfriend
+
+### Python version
     $ tar xzvf catfriend-*.tar.gz
     $ cd catfriend-*/
     $ cp catfriend.example ~/.config/catfriend
@@ -18,24 +32,46 @@ catfriend is python script that checks your e-mail and creates desktop notificat
 ## Configuration
 The configuration file lives at ~/.config/catfriend. Here is an example config:
 
-    host secure.work.com
+    imap secure.work.com
         user      bossman@work.com
         password  secure
         nossl # turn off ssl, it is on by default
 
-    host imap.gmail.com
+    imap imap.gmail.com
         id        fun  # used instead of host in nofifications when available
         user      friend@gmail.com
         password  faptap
+        cert_file server.pem  # relative to ~/.config or XDG config dir
 
-    # time notification remains on screen in milliseconds
+    # Time notification remains on screen in milliseconds
     notificationTimeout    10000
     errorTimeout           60000  # as above but for error notifications
     socketTimeout          60     # server socket timeout in seconds
-    checkInterval          60     # how often to wait between checks in seconds
+
+    # How often to wait between checks in seconds, only required for Python
+    # version as Ruby version uses IMAP IDLE to notify you as soon as mail
+    # arrives
+    checkInterval          60
 
 ## TODO
-* Use IMAP idle rather than polling
+* Support POP3/RSS Feeds
 
 ## Dependencies
+
+### Ruby version
+* ruby-libnotify
+* ruby-xdg (optional)
+
+### Python version
 * python-notify
+
+## Comparison
+
+### Ruby pros
+* You can terminate the Ruby version at any time with ctrl-C whilst the Python version can get unavoidably stuck for a while waiting on IO due to Python's threading model.
+* Ensures your security by forcing you to download SSL certificates for self signed SSL keys.
+* Ruby's IMAP library supports the IDLE command so you get notified as soon as new mail arrives; whilst the Python version has to poll for mail at a configurable interval.
+
+### Python pros
+* Can be faster depending on your Ruby implementation.
+* Accepts self-signed SSL certificates with no fuss (although this is insecure).

@@ -200,7 +200,7 @@ def readConfig():
 
     currentSource = None
     file = open(getenv('HOME') + '/.config/catfriend', 'r')
-    re = regex("^\s*(?:([a-zA-Z]+)(?:\s+(\S+))?\s*)?(?:#.*)?$")
+    re = regex("^\s*(?:([a-zA-Z_]+)(?:\s+(\S+))?\s*)?(?:#.*)?$")
 
     checks = []
     for source in sources:
@@ -224,7 +224,7 @@ def readConfig():
             socketTimeout = int(res[1])
         elif res[0] == "checkInterval":
             checkInterval = int(res[1])
-        elif res[0] == "host":
+        elif res[0] == "host" or res[0] == "imap":
             if currentSource:
                 sources.append(currentSource)
             currentSource = MailSource(res[1])
@@ -241,6 +241,9 @@ def readConfig():
             currentSource.user = res[1]
         elif res[0] == "password":
             currentSource.password = res[1]
+        elif res[0] == "cert_file":
+            # ignored
+            currentSource.cert_file = res[1]
         else:
             return line
 

@@ -1,105 +1,104 @@
 #!/usr/bin/env ruby
 
-module Catfriend
-
+# Program for reading IMAP servers and creating desktop notifications when
+# new e-mail arrives.
+#
+# Author:: James Pike (mailto:catfriend@chilon.net)
+# Copyright:: Copyright (c) 2011 James Pike
+# License:: MIT
+require 'catfriend/filetokenstack'
+require 'catfriend/imap'
 require 'net/imap'
 
-stderr_bak = $stderr.dup  # prevent deprecation warnings from xdg module
+module Catfriend
+
+# xdg is optional. it outputs to stderr, so i redirect it for a while.
+stderr_bak = $stderr.dup
 $stderr.reopen '/dev/null', 'w'
-require 'xdg'
+begin
+    require 'xdg'
+rescue LoadError ; end
 $stderr = stderr_bak # restore stderr
 
-# mixin this module and define "run"
-module ThreadMixin
-    def start ; @thread = Thread.new { run } ; end
-    def join ; @thread.join ; end
-end
-
-# provide configure which allows all instance variables with write
-# accessors declared to be set from a hash
-module AccessorsFromHash
-    def configure args
-        args.each do |opt, val|
-            instance_variable_set("@#{opt}", val) if respond_to? "#{opt}="
-        end
-    end
-end
-
-class ImapServer
-    include ThreadMixin
-    include AccessorsFromHash
-
-    class ConfigError < Exception ; end
-
-    def initialize(args = nil)
-        configure args if args
-    end
-
-    # ThreadMixin interface
-    def run
-        # connect and go
-        begin
-            connect
-        rescue OpenSSL::SSL::SSLError
-            puts "ssl error, try providing certificate"
-        rescue Net::IMAP::NoResponseError
-            puts "no response to connect, try ssl"
-        rescue ConfigError => e
-            puts "imap server misconfiguration: " + e.message
-        else
-            check_loop
-        end
-    end
-
-    def check_loop
-        #
-    end
-
-    def connect
-        if not @user
-            raise ConfigError, "user not set"
-        end
-        if not @host
-            raise ConfigError, "host not set"
-        end
-        if not @password
-            raise ConfigError, "password not set"
-        end
-
-        args = nil
-        if not @no_ssl then
-            if @cert_file then
-                args = { :ssl => { :ca_file => @cert_file } }
-            else
-                args = { :ssl => true }
-            end
-        end
-        @imap = Net::IMAP.new(@host, args)
-        @imap.login(@user, @password)
-        puts @imap.select 'INBOX'
-    end
-
-    private :connect, :check_loop, :run
-    attr_writer :host, :password, :user, :no_ssl, :cert_file
-end
-
+# Reads a simple configuration format and returns an array of servers.
 def self.parse_config
-    config_file = XDG['CONFIG'].find 'catfriend'
+    # xdg is optional
+    begin
+        config_file = XDG['CONFIG'].find 'catfriend'
+    rescue NameError ; end
     config_file ||= "#{ENV['HOME']}/.config/catfriend"
 
-    servers = []
+    # for location of certificate file
+    Dir.chdir File.dirname(config_file)
 
-    # TODO: parse config file
+    servers = []
+    current = {}
+    defaults = {}
+
+    tokens = FileTokenStack.new config_file
+    until tokens.empty?
+        field = tokens.shift
+
+        # obviously assigning it in a loop like this is slow but hey it's
+        # only run-once config and ruby people say DRY a lot.
+        shift_tokens = lambda do
+            if tokens.empty? then
+                raise ConfigError, "field #{field} requires parameter"
+            end
+            return tokens.shift
+        end
+
+        case field
+        when "host","imap"
+            # host is deprecated
+            if not current.empty? then
+                servers << ImapServer.new(current)
+                current = {}
+            end
+            current[:host] = shift_tokens.call
+        when "notificationTimeout", "errorTimeout", "socketTimeout"
+            # convert from camelCase to camel_case
+            clean_field =
+                field.gsub(/([a-z])([A-Z])/) { "#{$1}_#{$2.downcase}" }
+            defaults[clean_field] = shift_tokens.call
+        when "checkInterval"
+            shift_tokens.call # deprecated, ignore parameter
+        when "cert_file"
+            cert_file = shift_tokens.call
+            unless File.exists? cert_file
+                raise ConfigError,
+                      "non-existant SSL certificate `#{cert_file}'" +
+                      ", search path: #{File.dirname(config_file)}/"
+            end
+            current[:cert_file] = cert_file
+        when "mailbox", "id", "user", "password"
+            current[field] = shift_tokens.call
+        when "nossl"
+            current[:no_ssl] = true
+        else
+            raise ConfigError,
+                "invalid config parameter '#{field}': #{line}"
+        end
+    end
+
+    servers << ImapServer.new(current) unless current.empty?
 
     servers
 end
 
+# Main interface to the application. Reads all servers from config then runs
+# each one in a thread. The program exits when all threads encounter an
+# unrecoverable error. Perhaps I should make it exit if any thread exits.
 def self.main
-    servers = parse_config
-    servers.each { |s| s.start }
-    servers.each { |s| s.join }
+    begin
+        servers = parse_config
+        servers.each { |s| s.start }
+        servers.each { |s| s.join }
+    rescue ConfigError => e
+        puts "misconfiguration: #{e.message}"
+    end
 end
 
 end ########################### end module
 
-Catfriend.main if __FILE__ == $0
+Catfriend.main
