@@ -60,7 +60,10 @@ class ImapServer
         rescue Net::IMAP::NoResponseError
             error "no response to connect, try ssl"
         else
-            check_loop
+            @message_count = @imap.fetch('*', 'UID').first.seqno
+            notify_message @message_count
+
+            loop { check_loop }
         end
     end
 
@@ -68,22 +71,32 @@ class ImapServer
     # e-mail arrives or when error conditions happen. This methods only exits
     # on an unrecoverable error.
     def check_loop
-        req = @imap.fetch('*', 'UID').first
-        notify_n_messages req.seqno
-
         @imap.idle do |r|
             next if r.instance_of? Net::IMAP::ContinuationRequest
 
-            if r.instance_of? Net::IMAP::UntaggedResponse and r.name == 'EXISTS'
-                notify_n_messages r.data
+            if r.instance_of? Net::IMAP::UntaggedResponse
+                if r.name == 'EXISTS'
+                    # some servers send this even when the message count
+                    # hasn't increased so suspiciously double-check
+                    if r.data > @message_count
+                        @message_count = r.data
+                        notify_message @message_count
+                    end
+                elsif r.name == 'EXPUNGE'
+                    @message_count -= 1
+                end
             end
         end
+
+        notify_message "error - server cancelled idle"
+    rescue => e
+        # todo: see if we have to re-open socket
+        notify_message "error - #{e.message}"
     end
 
-    def notify_n_messages n_messages
-        @notification.update do |n|
-            n.summary = "#{id}: #{n_messages}"
-        end
+    def notify_message message
+        @notification.update { |n| n.summary = "#{id}: #{message}" }
+        # puts @notification.summary # debug code
     end
 
     def kill
@@ -108,7 +121,7 @@ class ImapServer
 
     def disconnect ; @imap.disconnect ; end
 
-    private :connect, :disconnect, :check_loop, :run, :error, :notify_n_messages
+    private :connect, :disconnect, :check_loop, :run, :error, :notify_message
     attr_writer :host, :password, :id, :user, :no_ssl, :cert_file, :mailbox
 end
 
