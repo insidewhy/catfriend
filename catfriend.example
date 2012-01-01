@@ -7,6 +7,7 @@ host imap.gmail.com
     id        fun  # used instead of host in nofifications when available
     user      friend@gmail.com
     password  faptap
+    cert_file server.pem  # path relative to config file
 
 # time notification remains on screen in milliseconds
 notificationTimeout    10000

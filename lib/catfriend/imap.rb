@@ -49,13 +49,12 @@ class ImapServer
     # runs #check_loop to do the e-mail checking if the connection
     # succeeds.
     def run
-        # connect and go
         begin
             connect
-            @notification = Libnotify.new do |n|
-                n.summary = @id
-            end
-
+            # :body => nil means summary only
+            @notification =
+                Libnotify.new :body => nil,
+                              :timeout => Catfriend.notification_timeout
         rescue OpenSSL::SSL::SSLError
             error "try providing ssl certificate"
         rescue Net::IMAP::NoResponseError
@@ -69,7 +68,27 @@ class ImapServer
     # e-mail arrives or when error conditions happen. This methods only exits
     # on an unrecoverable error.
     def check_loop
-        #
+        req = @imap.fetch('*', 'UID').first
+        notify_n_messages req.seqno
+
+        @imap.idle do |r|
+            next if r.instance_of? Net::IMAP::ContinuationRequest
+
+            if r.instance_of? Net::IMAP::UntaggedResponse and r.name == 'EXISTS'
+                notify_n_messages r.data
+            end
+        end
+    end
+
+    def notify_n_messages n_messages
+        @notification.update do |n|
+            n.summary = "#{id}: #{n_messages}"
+        end
+    end
+
+    def kill
+        disconnect
+        super
     end
 
     # Connect to the configured IMAP server.
@@ -84,10 +103,12 @@ class ImapServer
         end
         @imap = Net::IMAP.new(@host, args)
         @imap.login(@user, @password)
-        puts @imap.select(@mailbox || "INBOX")
+        @imap.select(@mailbox || "INBOX")
     end
 
-    private :connect, :check_loop, :run, :error
+    def disconnect ; @imap.disconnect ; end
+
+    private :connect, :disconnect, :check_loop, :run, :error, :notify_n_messages
     attr_writer :host, :password, :id, :user, :no_ssl, :cert_file, :mailbox
 end
 

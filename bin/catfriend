@@ -100,9 +100,11 @@ def self.main
     end
 
     begin
+        # todo: daemonize here unless certain command line argument given
         servers.each { |s| s.start }
         servers.each { |s| s.join }
     rescue Interrupt
+        servers.each { |s| s.kill }
     rescue => e
         puts "unknown error #{e.message}\n#{e.backtrace.join("\n")}"
     end
