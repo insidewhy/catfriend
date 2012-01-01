@@ -1,5 +1,9 @@
 module Catfriend
 
+def self.notification_timeout
+    @@notification_timeout
+end
+
 # Mixin this module and define "run" for a simple runnable/joinable thread
 module ThreadMixin
     # Call to start a thread running via the start method.

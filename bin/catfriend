@@ -12,6 +12,8 @@ require 'net/imap'
 
 module Catfriend
 
+APP_NAME = "catfriend"
+
 # xdg is optional. it outputs to stderr, so i redirect it for a while.
 stderr_bak = $stderr.dup
 $stderr.reopen '/dev/null', 'w'
@@ -24,9 +26,9 @@ $stderr = stderr_bak # restore stderr
 def self.parse_config
     # xdg is optional
     begin
-        config_file = XDG['CONFIG'].find 'catfriend'
+        config_file = XDG['CONFIG'].find APP_NAME
     rescue NameError ; end
-    config_file ||= "#{ENV['HOME']}/.config/catfriend"
+    config_file ||= "#{ENV['HOME']}/.config/#{APP_NAME}"
 
     # for location of certificate file
     Dir.chdir File.dirname(config_file)
@@ -42,7 +44,7 @@ def self.parse_config
         # obviously assigning it in a loop like this is slow but hey it's
         # only run-once config and ruby people say DRY a lot.
         shift_tokens = lambda do
-            if tokens.empty? then
+            if tokens.empty?
                 raise ConfigError, "field #{field} requires parameter"
             end
             return tokens.shift
@@ -51,7 +53,7 @@ def self.parse_config
         case field
         when "host","imap"
             # host is deprecated
-            if not current.empty? then
+            if not current.empty?
                 servers << ImapServer.new(current)
                 current = {}
             end
@@ -82,6 +84,7 @@ def self.parse_config
     end
 
     servers << ImapServer.new(current) unless current.empty?
+    @@notification_timeout = (defaults["notification_timeout"] or 60).to_i
 
     servers
 end
@@ -92,10 +95,16 @@ end
 def self.main
     begin
         servers = parse_config
-        servers.each { |s| s.start }
-        servers.each { |s| s.join }
     rescue ConfigError => e
         puts "misconfiguration: #{e.message}"
+    end
+
+    begin
+        servers.each { |s| s.start }
+        servers.each { |s| s.join }
+    rescue Interrupt
+    rescue => e
+        puts "unknown error #{e.message}\n#{e.backtrace.join("\n")}"
     end
 end
 

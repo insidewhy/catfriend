@@ -59,8 +59,9 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
 ## Dependencies
 
 ### Ruby version
-* ruby-libnotify
-* ruby-xdg (optional)
+* gtkmm 2.4-3
+* gem install libnotify
+* gem install xdg (optional)
 
 ### Python version
 * python-notify

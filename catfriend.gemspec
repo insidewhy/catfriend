@@ -14,6 +14,6 @@ Gem::Specification.new do |s|
     s.files        = %w(LICENSE) + Dir.glob('lib/catfriend/*.rb')
     s.license      = 'Expat'
     s.executables  = %w(catfriend)
-    s.add_dependency('ruby-libnotify', '>=0.5')
-    s.add_dependency('xdg', '>=2')
+    s.add_dependency('libnotify', '>=0.6')
+    # s.add_dependency('xdg', '>=2') # optional
 end

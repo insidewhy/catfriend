@@ -1,6 +1,7 @@
-module Catfriend
-
 require 'catfriend/server'
+require 'catfriend/notify'
+
+module Catfriend
 
 # This class represents a thread capable of checking and creating
 # notifications for a single mailbox on a single IMAP server.
@@ -51,6 +52,10 @@ class ImapServer
         # connect and go
         begin
             connect
+            @notification = Libnotify.new do |n|
+                n.summary = @id
+            end
+
         rescue OpenSSL::SSL::SSLError
             error "try providing ssl certificate"
         rescue Net::IMAP::NoResponseError
@@ -70,8 +75,8 @@ class ImapServer
     # Connect to the configured IMAP server.
     def connect
         args = nil
-        if not @no_ssl then
-            if @cert_file then
+        if not @no_ssl
+            if @cert_file
                 args = { :ssl => { :ca_file => @cert_file } }
             else
                 args = { :ssl => true }
