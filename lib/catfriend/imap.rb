@@ -30,8 +30,6 @@ class ImapServer
         if not @password
             raise ConfigError, "imap password not set"
         end
-
-        @id = @host unless @id
     end
 
     # The id is a token which represents this server when displaying
