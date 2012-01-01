@@ -70,26 +70,31 @@ class ImapServer
     # on an unrecoverable error.
     def check_loop
         @imap.idle do |r|
+            # puts "#{id}: #{r}" # debug code
             next if r.instance_of? Net::IMAP::ContinuationRequest
 
             if r.instance_of? Net::IMAP::UntaggedResponse
-                if r.name == 'EXISTS'
+                case r.name
+                when 'EXISTS'
                     # some servers send this even when the message count
                     # hasn't increased so suspiciously double-check
-                    if r.data > @message_count
+                    if r.data != @message_count
+                        notify_message(r.data) if r.data > @message_count
                         @message_count = r.data
-                        notify_message @message_count
                     end
-                elsif r.name == 'EXPUNGE'
+                when 'EXPUNGE'
                     @message_count -= 1
                 end
             end
         end
 
-        notify_message "error - server cancelled idle"
+        notify_message "error - server cancelled idle" unless @dead
     rescue => e
-        # todo: see if we have to re-open socket
-        notify_message "error - #{e.message}"
+        unless @dead
+            # todo: see if we have to re-open socket
+            notify_message "error - #{e.message}"
+            puts e.backtrace.join "\n"
+        end
     end
 
     def notify_message message
@@ -98,6 +103,7 @@ class ImapServer
     end
 
     def kill
+        @dead = 1
         disconnect
         super
     end
