@@ -1,12 +1,13 @@
 require 'catfriend/server'
 require 'catfriend/notify'
+require 'catfriend/thread'
 
 module Catfriend
 
 # This class represents a thread capable of checking and creating
 # notifications for a single mailbox on a single IMAP server.
 class ImapServer
-    include ThreadMixin
+    include Thread
     include AccessorsFromHash
 
     # Create new IMAP server with optional full configuration hash.
@@ -48,20 +49,21 @@ class ImapServer
     # succeeds.
     def run
         begin
-            connect
-            # :body => nil means summary only
             @notification =
                 Libnotify.new :body => nil,
                               :timeout => Catfriend.notification_timeout
+            @message_count = connect
+            notify_message @message_count
+            # :body => nil means summary only
         rescue OpenSSL::SSL::SSLError
             error "try providing ssl certificate"
         rescue Net::IMAP::NoResponseError
             error "no response to connect, try ssl"
         else
-            @message_count = @imap.fetch('*', 'UID').first.seqno
-            notify_message @message_count
-
-            loop { check_loop }
+            loop {
+                check_loop
+                break if stopped?
+            }
         end
     end
 
@@ -88,9 +90,12 @@ class ImapServer
             end
         end
 
-        notify_message "error - server cancelled idle" unless @dead
+        # puts "idle loop over" # debug code
+    rescue Net::IMAP::Error, IOError
+        # reconnect and carry on
+        reconnect unless stopped?
     rescue => e
-        unless @dead
+        unless stopped?
             # todo: see if we have to re-open socket
             notify_message "error - #{e.message}"
             puts e.backtrace.join "\n"
@@ -103,12 +108,11 @@ class ImapServer
     end
 
     def kill
-        @dead = 1
         disconnect
         super
     end
 
-    # Connect to the configured IMAP server.
+    # Connect to the configured IMAP server and return message count.
     def connect
         args = nil
         if not @no_ssl
@@ -121,11 +125,21 @@ class ImapServer
         @imap = Net::IMAP.new(@host, args)
         @imap.login(@user, @password)
         @imap.select(@mailbox || "INBOX")
+        return @imap.fetch('*', 'UID').first.seqno
+    end
+
+    def reconnect
+        # todo: log an error unless this completes within a short time
+        # puts "#{id}: reconnecting" # debug code
+        new_count = connect
+        notify_message(new_count) if new_count != @message_count
+        @message_count = new_count
     end
 
     def disconnect ; @imap.disconnect ; end
 
-    private :connect, :disconnect, :check_loop, :run, :error, :notify_message
+    private :connect, :disconnect, :reconnect,
+            :check_loop, :run, :error, :notify_message
     attr_writer :host, :password, :id, :user, :no_ssl, :cert_file, :mailbox
 end
 
