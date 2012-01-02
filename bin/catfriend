@@ -97,10 +97,14 @@ end
 # unrecoverable error. Perhaps I should make it exit if any thread exits.
 def self.main args
     work_accounts = false
+    foreground = false
     Catfriend.verbose = false
     begin
         OptionParser.new do |opts|
             opts.banner = "usage: #{APP_NAME} [options]"
+            opts.on("-f", "--foreground", "run in foreground") do
+                foreground = true
+            end
 
             opts.on("-w", "--work", "enable work accounts") do
                 work_accounts = true
@@ -110,13 +114,20 @@ def self.main args
             end
         end.parse!
 
+        Catfriend.verbose = false unless foreground
+
         servers = parse_config
         servers.reject! { |s| s.work_account } unless work_accounts
         raise ConfigError, "no servers to check" if servers.empty?
 
-        # todo: daemonize here unless certain command line argument given
-        servers.each { |s| s.start }
-        servers.each { |s| s.join }
+        if foreground
+            start_servers servers
+        else
+            pid = fork do
+                start_servers servers
+            end
+            Process.detach pid
+        end
     rescue ConfigError => e
         puts "misconfiguration: #{e.message}"
     rescue Interrupt
@@ -128,6 +139,11 @@ def self.main args
     end
 
     1
+end
+
+def self.start_servers servers
+    servers.each { |s| s.start }
+    servers.each { |s| s.join }
 end
 
 end ########################### end module
