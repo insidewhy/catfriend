@@ -1,4 +1,4 @@
-require 'libnotify'
+require 'catfriend/libnotify'
 require 'catfriend/server'
 require 'catfriend/thread'
 
@@ -97,7 +97,7 @@ class ImapServer
     rescue => e
         unless stopped?
             # todo: see if we have to re-open socket
-            notify_message "error - #{e.message}"
+            notify_message "#{@message_count} [error: #{e.message}]"
             puts e.backtrace.join "\n"
         end
     end
@@ -129,10 +129,14 @@ class ImapServer
     end
 
     def reconnect
-        # todo: log an error unless this completes within a short time
-        Catfriend.whisper "#{id}: reconnecting"
+        notify_message "#{@message_count} [reconnecting]"
         new_count = connect
-        notify_message(new_count) if new_count != @message_count
+        if new_count != @message_count
+            notify_message new_count
+        else
+            # todo: only if it was still open
+            @notification.close
+        end
         @message_count = new_count
     end
 
