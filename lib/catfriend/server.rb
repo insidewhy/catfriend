@@ -1,7 +1,12 @@
 module Catfriend
 
-def self.notification_timeout
-    @@notification_timeout
+class << self
+    attr_accessor :notification_timeout, :verbose
+
+    # puts something if -v was used
+    def whisper *args
+        puts *args if verbose
+    end
 end
 
 # Mixin to provide #configure which allows all instance variables with write

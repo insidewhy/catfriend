@@ -6,6 +6,7 @@ Ruby and Python versions are provided.
 
 ## Features
 * Can check multiple accounts.
+* Uses IMAP IDLE to notify as soon as mail arrives rather than polling.
 * Simple configuration file format.
 * Updates an account's notification if it has not been closed rather than creating duplicate notifications.
 * Supports IMAP accounts with or without SSL.
@@ -32,16 +33,17 @@ The fourth step is only necessary if you are using a mail-server with a self-sig
 ## Configuration
 The configuration file lives at ~/.config/catfriend. Here is an example config:
 
-    imap secure.work.com
-        user      bossman@work.com
-        password  secure
-        nossl # turn off ssl, it is on by default
-
     imap imap.gmail.com
         id        fun  # used instead of host in nofifications when available
         user      friend@gmail.com
         password  faptap
         cert_file server.pem  # relative to ~/.config or XDG config dir
+
+    imap insecure.work.com
+        user      bossman@work.com
+        password  insecure
+        nossl # turn off ssl, it is on by default
+        work  # mark as work account, -w command-line argument enables it
 
     # Time notification remains on screen in milliseconds
     notificationTimeout    10000

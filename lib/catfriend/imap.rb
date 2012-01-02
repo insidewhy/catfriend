@@ -1,5 +1,5 @@
+require 'libnotify'
 require 'catfriend/server'
-require 'catfriend/notify'
 require 'catfriend/thread'
 
 module Catfriend
@@ -72,7 +72,7 @@ class ImapServer
     # on an unrecoverable error.
     def check_loop
         @imap.idle do |r|
-            # puts "#{id}: #{r}" # debug code
+            Catfriend.whisper "#{id}: #{r}"
             next if r.instance_of? Net::IMAP::ContinuationRequest
 
             if r.instance_of? Net::IMAP::UntaggedResponse
@@ -90,7 +90,7 @@ class ImapServer
             end
         end
 
-        # puts "idle loop over" # debug code
+        Catfriend.whisper "idle loop over"
     rescue Net::IMAP::Error, IOError
         # reconnect and carry on
         reconnect unless stopped?
@@ -103,8 +103,8 @@ class ImapServer
     end
 
     def notify_message message
-        @notification.update { |n| n.summary = "#{id}: #{message}" }
-        # puts @notification.summary # debug code
+        @notification.update :summary => "#{id}: #{message}"
+        Catfriend.whisper @notification.summary
     end
 
     def kill
@@ -130,7 +130,7 @@ class ImapServer
 
     def reconnect
         # todo: log an error unless this completes within a short time
-        # puts "#{id}: reconnecting" # debug code
+        Catfriend.whisper "#{id}: reconnecting"
         new_count = connect
         notify_message(new_count) if new_count != @message_count
         @message_count = new_count
@@ -140,7 +140,9 @@ class ImapServer
 
     private :connect, :disconnect, :reconnect,
             :check_loop, :run, :error, :notify_message
+
     attr_writer :host, :password, :id, :user, :no_ssl, :cert_file, :mailbox
+    attr_accessor :work_account
 end
 
 end # end module

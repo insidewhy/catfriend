@@ -1,13 +1,16 @@
-host secure.work.com
-    user      bossman@work.com
-    password  secure
-    nossl # turn off ssl, it is on by default
+# copy to ~/.config/catfriend
 
 host imap.gmail.com
     id        fun  # used instead of host in nofifications when available
     user      friend@gmail.com
     password  faptap
-    cert_file server.pem  # path relative to config file
+    cert_file server.pem  # path relative to config file i.e. ~/.config
+
+host insecure.work.com
+    user      bossman@work.com
+    password  insecure
+    nossl # turn off ssl, it is on by default
+    work  # mark as work account, -w command-line argument enables it
 
 # time notification remains on screen in milliseconds
 notificationTimeout    10000

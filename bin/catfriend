@@ -9,6 +9,7 @@
 require 'catfriend/filetokenstack'
 require 'catfriend/imap'
 require 'net/imap'
+require 'optparse'
 
 module Catfriend
 
@@ -77,14 +78,16 @@ def self.parse_config
             current[field] = shift_tokens.call
         when "nossl"
             current[:no_ssl] = true
+        when "work"
+            current[:work_account] = true
         else
             raise ConfigError,
-                "invalid config parameter '#{field}': #{line}"
+                "invalid config parameter '#{field}'"
         end
     end
 
     servers << ImapServer.new(current) unless current.empty?
-    @@notification_timeout = (defaults["notification_timeout"] or 60).to_i
+    Catfriend.notification_timeout = (defaults["notification_timeout"] or 60).to_i
 
     servers
 end
@@ -92,24 +95,41 @@ end
 # Main interface to the application. Reads all servers from config then runs
 # each one in a thread. The program exits when all threads encounter an
 # unrecoverable error. Perhaps I should make it exit if any thread exits.
-def self.main
+def self.main args
+    work_accounts = false
+    Catfriend.verbose = false
     begin
-        servers = parse_config
-    rescue ConfigError => e
-        puts "misconfiguration: #{e.message}"
-    end
+        OptionParser.new do |opts|
+            opts.banner = "usage: #{APP_NAME} [options]"
 
-    begin
+            opts.on("-w", "--work", "enable work accounts") do
+                work_accounts = true
+            end
+            opts.on("-v", "--verbose", "verbose output to console") do
+                Catfriend.verbose = true
+            end
+        end.parse!
+
+        servers = parse_config
+        servers.reject! { |s| s.work_account } unless work_accounts
+        raise ConfigError, "no servers to check" if servers.empty?
+
         # todo: daemonize here unless certain command line argument given
         servers.each { |s| s.start }
         servers.each { |s| s.join }
+    rescue ConfigError => e
+        puts "misconfiguration: #{e.message}"
     rescue Interrupt
         servers.each { |s| s.kill }
     rescue => e
         puts "unknown error #{e.message}\n#{e.backtrace.join("\n")}"
+    else
+        return 0
     end
+
+    1
 end
 
 end ########################### end module
 
-Catfriend.main
+exit Catfriend.main ARGV
