@@ -1,4 +1,4 @@
-require 'catfriend/libnotify'
+require 'libnotify'
 require 'catfriend/server'
 require 'catfriend/thread'
 
@@ -62,7 +62,7 @@ class ImapServer
         else
             loop {
                 check_loop
-                break if stopped?
+                break if stopping?
             }
         end
     end
@@ -93,9 +93,9 @@ class ImapServer
         Catfriend.whisper "idle loop over"
     rescue Net::IMAP::Error, IOError
         # reconnect and carry on
-        reconnect unless stopped?
+        reconnect unless stopping?
     rescue => e
-        unless stopped?
+        unless stopping?
             # todo: see if we have to re-open socket
             notify_message "#{@message_count} [error: #{e.message}]"
             puts e.backtrace.join "\n"
@@ -107,7 +107,12 @@ class ImapServer
         Catfriend.whisper @notification.summary
     end
 
+    def stopping?
+        stopped? or @stopping
+    end
+
     def kill
+        @stopping = true
         disconnect
         super
     end
