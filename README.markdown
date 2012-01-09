@@ -56,12 +56,12 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
     checkInterval          60
 
 ## TODO
-* Support POP3/RSS Feeds
+* Support POP3/Atom/RSS
 
 ## Dependencies
 
 ### Ruby version
-* gtkmm 2.4-3
+* gtkmm
 * gem install libnotify
 * gem install xdg (optional)
 
@@ -78,3 +78,4 @@ The configuration file lives at ~/.config/catfriend. Here is an example config:
 ### Python pros
 * Can be faster depending on your Ruby implementation.
 * Accepts self-signed SSL certificates with no fuss (although this is insecure).
+* Is no longer being updated so lacks "work" feature.
