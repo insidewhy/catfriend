@@ -2,6 +2,12 @@ require 'libnotify'
 require 'catfriend/server'
 require 'catfriend/thread'
 
+# unless I do this I get random errors from Libnotify on startup 90% of the
+# time... this could be a bug in autoload or ruby 1.9 rather than libnotify
+module Libnotify
+    class API ; end
+end
+
 module Catfriend
 
 # This class represents a thread capable of checking and creating
