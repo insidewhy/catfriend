@@ -15,5 +15,6 @@ Gem::Specification.new do |s|
     s.license      = 'Expat'
     s.executables  = %w(catfriend)
     s.add_dependency('libnotify', '>=0.7.1')
+    s.add_dependency('ruby-dbus', '>=0.7')
     # s.add_dependency('xdg', '>=2') # optional
 end

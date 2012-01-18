@@ -8,6 +8,7 @@
 # License:: MIT
 require 'catfriend/filetokenstack'
 require 'catfriend/imap'
+require 'catfriend/dbus'
 require 'net/imap'
 require 'optparse'
 
@@ -99,6 +100,7 @@ def self.main args
     work_accounts = false
     foreground = false
     Catfriend.verbose = false
+    done_action = false
     begin
         OptionParser.new do |opts|
             opts.banner = "usage: #{APP_NAME} [options]"
@@ -112,7 +114,18 @@ def self.main args
             opts.on("-v", "--verbose", "verbose output to console") do
                 Catfriend.verbose = true
             end
+
+            opts.on("-s", "--stop", "shut down running server") do
+                done_action = true
+                if Catfriend::DBusClient.shutdown
+                    puts "sent shutdown signal"
+                else
+                    puts "could not send shutdown signal, no server running?"
+                end
+            end
         end.parse!
+
+        return 0 if done_action
 
         Catfriend.verbose = false unless foreground
 
@@ -121,10 +134,10 @@ def self.main args
         raise ConfigError, "no servers to check" if servers.empty?
 
         if foreground
-            start_servers servers
+            main_loop servers
         else
             pid = fork do
-                start_servers servers
+                main_loop servers
             end
             Process.detach pid
         end
@@ -141,7 +154,10 @@ def self.main args
     1
 end
 
-def self.start_servers servers
+def self.main_loop servers
+    Catfriend::DBusClient.shutdown # shut down duplicate
+    dbus = DBusServer.new
+    dbus.start
     servers.each { |s| s.start }
     servers.each { |s| s.join }
 end
