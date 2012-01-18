@@ -117,7 +117,8 @@ def self.main args
 
             opts.on("-s", "--stop", "shut down running server") do
                 done_action = true
-                if Catfriend::DBusClient.shutdown
+                dbus = DBus.new
+                if dbus.shutdown
                     puts "sent shutdown signal"
                 else
                     puts "could not send shutdown signal, no server running?"
@@ -155,8 +156,7 @@ def self.main args
 end
 
 def self.main_loop servers
-    Catfriend::DBusClient.shutdown # shut down duplicate
-    dbus = DBusServer.new
+    dbus = DBus.new
     dbus.start
     servers.each { |s| s.start }
     servers.each { |s| s.join }
