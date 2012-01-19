@@ -12,7 +12,8 @@ class DBus
     include Thread
 
     class DBusObject < ::DBus::Object
-        def initialize(servers)
+        def initialize(main, servers)
+            @main    = main
             @servers = servers
             super PATH
         end
@@ -20,6 +21,7 @@ class DBus
         dbus_interface INTERFACE do
           dbus_method :stop do
             Catfriend.whisper "received shutdown request"
+            @main.quit  # this must be run from within method handler
             @servers.each { |s| s.disconnect }
           end
         end
@@ -46,7 +48,7 @@ class DBus
     end
 
     def start_service
-        object = DBusObject.new @servers
+        object = DBusObject.new(@main, @servers)
         service = @bus.request_service(SERVICE)
         service.export object
     end
@@ -57,10 +59,10 @@ class DBus
             Catfriend.whisper "shut down existing catfriend"
         end
 
+        @main = ::DBus::Main.new
         start_service
-        main = ::DBus::Main.new
-        main << @bus
-        main.run
+        @main << @bus
+        @main.run
     rescue => e
         puts "dbus unknown error #{e.message}\n#{e.backtrace.join("\n")}"
     end

@@ -160,6 +160,7 @@ def self.main_loop servers
     dbus.start
     servers.each { |s| s.start }
     servers.each { |s| s.join }
+    dbus.join
 end
 
 end ########################### end module
