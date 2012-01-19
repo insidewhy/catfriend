@@ -118,7 +118,6 @@ class ImapServer
     end
 
     def kill
-        @stopping = true
         disconnect
         super
     end
@@ -151,10 +150,12 @@ class ImapServer
         @message_count = new_count
     end
 
-    def disconnect ; @imap.disconnect ; end
+    def disconnect
+        @stopping = true
+        @imap.disconnect
+    end
 
-    private :connect, :disconnect, :reconnect,
-            :check_loop, :run, :error, :notify_message
+    private :connect, :reconnect, :check_loop, :run, :error, :notify_message
 
     attr_writer :host, :password, :id, :user, :no_ssl, :cert_file, :mailbox
     attr_accessor :work_account

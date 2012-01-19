@@ -12,19 +12,28 @@ class DBus
     include Thread
 
     class DBusObject < ::DBus::Object
+        def initialize(servers)
+            @servers = servers
+            super PATH
+        end
+
         dbus_interface INTERFACE do
           dbus_method :stop do
-            puts "stopping"
-            # todo: actually stop
+            Catfriend.whisper "received shutdown request"
+            @servers.each { |s| s.disconnect }
           end
         end
     end
 
-    def init
-        @bus = ::DBus::SessionBus.instance if not @bus
+    def initialize(servers = nil)
+        @servers = servers
     end
 
-    def shutdown
+    def init
+        @bus = ::DBus::SessionBus.instance unless @bus
+    end
+
+    def send_shutdown
         init
         service = @bus.service(SERVICE)
         object = service.object(PATH)
@@ -37,20 +46,18 @@ class DBus
     end
 
     def start_service
-        object = DBusObject.new PATH
+        object = DBusObject.new @servers
         service = @bus.request_service(SERVICE)
         service.export object
     end
 
     def run
         init
-        if shutdown
-            Catfriend.whisper "shutting down existing catfriend"
-            # TODO: wait for response to shutdown method
-        else
-            start_service
+        if send_shutdown
+            Catfriend.whisper "shut down existing catfriend"
         end
 
+        start_service
         main = ::DBus::Main.new
         main << @bus
         main.run

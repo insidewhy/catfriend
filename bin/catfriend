@@ -118,7 +118,7 @@ def self.main args
             opts.on("-s", "--stop", "shut down running server") do
                 done_action = true
                 dbus = DBus.new
-                if dbus.shutdown
+                if dbus.send_shutdown
                     puts "sent shutdown signal"
                 else
                     puts "could not send shutdown signal, no server running?"
@@ -156,7 +156,7 @@ def self.main args
 end
 
 def self.main_loop servers
-    dbus = DBus.new
+    dbus = DBus.new servers
     dbus.start
     servers.each { |s| s.start }
     servers.each { |s| s.join }
