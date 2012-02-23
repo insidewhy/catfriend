@@ -135,7 +135,13 @@ class ImapServer
         @imap = Net::IMAP.new(@host, args)
         @imap.login(@user, @password)
         @imap.select(@mailbox || "INBOX")
-        return @imap.fetch('*', 'UID').first.seqno
+
+        begin
+            # fetch raises an exception when the mailbox is empty
+            @imap.fetch('*', 'UID').first.seqno
+        rescue
+            0
+        end
     end
 
     def reconnect
