@@ -16,7 +16,6 @@ module Thread
     end
   end
 
-
   # Kill thread if it has started.
   def kill
     unless stopped?

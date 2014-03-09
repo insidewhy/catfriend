@@ -8,9 +8,12 @@ SERVICE   = "org.freedesktop.Catfriend"
 PATH      = "/org/freedesktop/Catfriend"
 INTERFACE = "org.freedesktop.Catfriend.System"
 
+# Represent a DBUS server interface and includes an associated thread
+# in which to run the dbus methods.
 class DBus
   include Thread
 
+  # This child class fulfils the DBus::Object interface
   class DBusObject < ::DBus::Object
     def initialize(main, servers)
       @main    = main
@@ -27,14 +30,17 @@ class DBus
     end
   end
 
+  # Initialize the object with a reference to each Imap object.
   def initialize(servers = nil)
     @servers = servers
   end
 
+  # Start the DBus interface
   def init
     @bus = ::DBus::SessionBus.instance unless @bus
   end
 
+  # Attempt to shutdown another application listening on catfriend's address.
   def send_shutdown
     init
     service = @bus.service(SERVICE)
@@ -47,12 +53,14 @@ class DBus
     false
   end
 
+  # Call send_shutdown then start the DBus interface.
   def start_service
     object = DBusObject.new(@main, @servers)
     service = @bus.request_service(SERVICE)
     service.export object
   end
 
+  # Run the DBus server in its own ruby thread.
   def run
     init
     if send_shutdown

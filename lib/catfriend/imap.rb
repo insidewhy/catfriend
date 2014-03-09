@@ -54,13 +54,12 @@ class ImapServer
   end
 
   # ThreadMixin interface. This connects to the mailserver and then
-  # runs #check_loop to do the e-mail checking if the connection
+  # runs #sleep_until_change to do the e-mail checking if the connection
   # succeeds.
   def run
     begin
       @notification =
-        Libnotify.new :body => nil,
-        :timeout => Catfriend.notification_timeout
+        Libnotify.new :body => nil, :timeout => Catfriend.notification_timeout
       @message_count = connect
       notify_message @message_count
       # :body => nil means summary only
@@ -70,7 +69,7 @@ class ImapServer
       error "no response to connect, try ssl"
     else
       loop {
-        check_loop
+        sleep_until_change
         break if stopping?
       }
     end
@@ -79,7 +78,7 @@ class ImapServer
   # Continually waits for new e-mail raising notifications when new
   # e-mail arrives or when error conditions happen. This methods only exits
   # on an unrecoverable error.
-  def check_loop
+  def sleep_until_change
     @imap.idle do |r|
       Catfriend.whisper "#{id}: #{r}"
       next if r.instance_of? Net::IMAP::ContinuationRequest
@@ -109,20 +108,25 @@ class ImapServer
     end
   end
 
+  # Update the associated notification with message and show it if it is not
+  # already displayed.
   def notify_message message
     @notification.update :summary => "#{id}: #{message}"
     Catfriend.whisper @notification.summary
   end
 
+  # Returns false until kill/disconnect have been called.
   def stopping?
     stopped? or @stopping
   end
 
+  # Disconnect from the imap server and stop the associated thread.
   def kill
     disconnect
     super
   end
 
+  # Ask IMAP server for count of unseen messages.
   def get_unseen_count
     begin
       # fetch raises an exception when the mailbox is empty
@@ -150,6 +154,9 @@ class ImapServer
     get_unseen_count
   end
 
+  # Reconnect to the server showing a "[reconnecting]" message. After
+  # reconnection then show the message count if it has changed from
+  # what was remembered before the disconnect.
   def reconnect
     notify_message "#{@message_count} [reconnecting]"
     new_count = connect
@@ -167,7 +174,7 @@ class ImapServer
     @imap.disconnect
   end
 
-  private :connect, :reconnect, :check_loop, :run, :error, :notify_message
+  private :connect, :reconnect, :sleep_until_change, :run, :error, :notify_message
 
   attr_writer :host, :password, :id, :user, :no_ssl, :cert_file, :mailbox
   attr_accessor :work_account
