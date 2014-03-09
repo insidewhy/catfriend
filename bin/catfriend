@@ -64,17 +64,15 @@ def self.parse_config
       current[:host] = shift_tokens.call
     when "notificationTimeout", "errorTimeout", "socketTimeout"
       # convert from camelCase to camel_case
-      clean_field =
-        field.gsub(/([a-z])([A-Z])/) { "#{$1}_#{$2.downcase}" }
+      clean_field = field.gsub(/([a-z])([A-Z])/) { "#{$1}_#{$2.downcase}" }
       defaults[clean_field] = shift_tokens.call
     when "checkInterval"
       shift_tokens.call # deprecated, ignore parameter
     when "cert_file"
       cert_file = shift_tokens.call
       unless File.exists? cert_file
-        raise ConfigError,
-          "non-existant SSL certificate `#{cert_file}'" +
-          ", search path: #{File.dirname(config_file)}/"
+        raise ConfigError, "non-existant SSL certificate `#{cert_file}', "
+                         + "search path: #{File.dirname(config_file)}/"
       end
       current[:cert_file] = cert_file
     when "mailbox", "id", "user", "password"
