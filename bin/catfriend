@@ -47,7 +47,7 @@ def self.parse_config
 
     # obviously assigning it in a loop like this is slow but hey it's
     # only run-once config and ruby people say DRY a lot.
-    shift_tokens = lambda do
+    shift_tokens = -> do
       raise ConfigError, "field #{field} requires parameter" if tokens.empty?
       return tokens.shift
     end
