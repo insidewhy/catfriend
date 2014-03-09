@@ -48,9 +48,7 @@ def self.parse_config
     # obviously assigning it in a loop like this is slow but hey it's
     # only run-once config and ruby people say DRY a lot.
     shift_tokens = lambda do
-      if tokens.empty?
-        raise ConfigError, "field #{field} requires parameter"
-      end
+      raise ConfigError, "field #{field} requires parameter" if tokens.empty?
       return tokens.shift
     end
 
@@ -82,8 +80,7 @@ def self.parse_config
     when "work"
       current[:work_account] = true
     else
-      raise ConfigError,
-        "invalid config parameter '#{field}'"
+      raise ConfigError, "invalid config parameter '#{field}'"
     end
   end
 
@@ -95,7 +92,9 @@ end
 
 # Main interface to the application. Reads all servers from config then runs
 # each one in a thread. The program exits when all threads encounter an
-# unrecoverable error. Perhaps I should make it exit if any thread exits.
+# unrecoverable error.
+# TODO: Use a conditional variable so that any thread can signal the main
+#       thread to exit.
 def self.main args
   work_accounts = false
   foreground = false
@@ -137,9 +136,7 @@ def self.main args
     if foreground
       main_loop servers
     else
-      pid = fork do
-        main_loop servers
-      end
+      pid = fork { main_loop servers }
       Process.detach pid
     end
   rescue ConfigError => e

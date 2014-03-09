@@ -31,15 +31,9 @@ class ImapServer
   def configure args
     super args
 
-    if not @user
-      raise ConfigError, "imap user not set"
-    end
-    if not @host
-      raise ConfigError, "imap host not set"
-    end
-    if not @password
-      raise ConfigError, "imap password not set"
-    end
+    raise ConfigError, "imap user not set" unless @user
+    raise ConfigError, "imap host not set" unless @host
+    raise ConfigError, "imap password not set" unless @password
   end
 
   # The id is a token which represents this server when displaying
@@ -138,7 +132,7 @@ class ImapServer
   # Connect to the configured IMAP server and return message count.
   def connect
     args = nil
-    if not @no_ssl
+    unless @no_ssl
       if @cert_file
         args = { :ssl => { :ca_file => @cert_file } }
       else
