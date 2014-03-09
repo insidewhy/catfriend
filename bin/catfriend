@@ -7,7 +7,7 @@
 # Copyright:: Copyright (c) 2011-2014 James Pike
 # License:: MIT
 
-$LOAD_PATH << 'lib' if File.exists? 'lib/catfriend'
+$LOAD_PATH.unshift('lib') if File.exists? 'lib/catfriend'
 
 require 'catfriend/filetokenstack'
 require 'catfriend/imap'
