@@ -23,149 +23,149 @@ APP_NAME = "catfriend"
 stderr_bak = $stderr.dup
 $stderr.reopen '/dev/null', 'w'
 begin
-    require 'xdg'
+  require 'xdg'
 rescue LoadError ; end
 $stderr = stderr_bak # restore stderr
 
 # Reads a simple configuration format and returns an array of servers.
 def self.parse_config
-    # xdg is optional
-    begin
-        config_file = XDG['CONFIG'].find APP_NAME
-    rescue NameError ; end
-    config_file ||= "#{ENV['HOME']}/.config/#{APP_NAME}"
+  # xdg is optional
+  begin
+    config_file = XDG['CONFIG'].find APP_NAME
+  rescue NameError ; end
+  config_file ||= "#{ENV['HOME']}/.config/#{APP_NAME}"
 
-    # for location of certificate file
-    Dir.chdir File.dirname(config_file)
+  # for location of certificate file
+  Dir.chdir File.dirname(config_file)
 
-    servers = []
-    current = {}
-    defaults = {}
+  servers = []
+  current = {}
+  defaults = {}
 
-    tokens = FileTokenStack.new config_file
-    until tokens.empty?
-        field = tokens.shift
+  tokens = FileTokenStack.new config_file
+  until tokens.empty?
+    field = tokens.shift
 
-        # obviously assigning it in a loop like this is slow but hey it's
-        # only run-once config and ruby people say DRY a lot.
-        shift_tokens = lambda do
-            if tokens.empty?
-                raise ConfigError, "field #{field} requires parameter"
-            end
-            return tokens.shift
-        end
-
-        case field
-        when "host","imap"
-            # host is deprecated
-            if not current.empty?
-                servers << ImapServer.new(current)
-                current = {}
-            end
-            current[:host] = shift_tokens.call
-        when "notificationTimeout", "errorTimeout", "socketTimeout"
-            # convert from camelCase to camel_case
-            clean_field =
-                field.gsub(/([a-z])([A-Z])/) { "#{$1}_#{$2.downcase}" }
-            defaults[clean_field] = shift_tokens.call
-        when "checkInterval"
-            shift_tokens.call # deprecated, ignore parameter
-        when "cert_file"
-            cert_file = shift_tokens.call
-            unless File.exists? cert_file
-                raise ConfigError,
-                      "non-existant SSL certificate `#{cert_file}'" +
-                      ", search path: #{File.dirname(config_file)}/"
-            end
-            current[:cert_file] = cert_file
-        when "mailbox", "id", "user", "password"
-            current[field] = shift_tokens.call
-        when "nossl"
-            current[:no_ssl] = true
-        when "work"
-            current[:work_account] = true
-        else
-            raise ConfigError,
-                "invalid config parameter '#{field}'"
-        end
+    # obviously assigning it in a loop like this is slow but hey it's
+    # only run-once config and ruby people say DRY a lot.
+    shift_tokens = lambda do
+      if tokens.empty?
+        raise ConfigError, "field #{field} requires parameter"
+      end
+      return tokens.shift
     end
 
-    servers << ImapServer.new(current) unless current.empty?
-    Catfriend.notification_timeout = (defaults["notification_timeout"] or 60).to_i
+    case field
+    when "host","imap"
+      # host is deprecated
+      if not current.empty?
+        servers << ImapServer.new(current)
+        current = {}
+      end
+      current[:host] = shift_tokens.call
+    when "notificationTimeout", "errorTimeout", "socketTimeout"
+      # convert from camelCase to camel_case
+      clean_field =
+        field.gsub(/([a-z])([A-Z])/) { "#{$1}_#{$2.downcase}" }
+      defaults[clean_field] = shift_tokens.call
+    when "checkInterval"
+      shift_tokens.call # deprecated, ignore parameter
+    when "cert_file"
+      cert_file = shift_tokens.call
+      unless File.exists? cert_file
+        raise ConfigError,
+          "non-existant SSL certificate `#{cert_file}'" +
+          ", search path: #{File.dirname(config_file)}/"
+      end
+      current[:cert_file] = cert_file
+    when "mailbox", "id", "user", "password"
+      current[field] = shift_tokens.call
+    when "nossl"
+      current[:no_ssl] = true
+    when "work"
+      current[:work_account] = true
+    else
+      raise ConfigError,
+        "invalid config parameter '#{field}'"
+    end
+  end
 
-    servers
+  servers << ImapServer.new(current) unless current.empty?
+  Catfriend.notification_timeout = (defaults["notification_timeout"] or 60).to_i
+
+  servers
 end
 
 # Main interface to the application. Reads all servers from config then runs
 # each one in a thread. The program exits when all threads encounter an
 # unrecoverable error. Perhaps I should make it exit if any thread exits.
 def self.main args
-    work_accounts = false
-    foreground = false
-    Catfriend.verbose = false
-    done_action = false
-    begin
-        OptionParser.new do |opts|
-            opts.banner = "usage: #{APP_NAME} [options]"
-            opts.on("-f", "--foreground", "run in foreground") do
-                foreground = true
-            end
+  work_accounts = false
+  foreground = false
+  Catfriend.verbose = false
+  done_action = false
+  begin
+    OptionParser.new do |opts|
+      opts.banner = "usage: #{APP_NAME} [options]"
+      opts.on("-f", "--foreground", "run in foreground") do
+        foreground = true
+      end
 
-            opts.on("-w", "--work", "enable work accounts") do
-                work_accounts = true
-            end
-            opts.on("-v", "--verbose", "verbose output to console") do
-                Catfriend.verbose = true
-            end
+      opts.on("-w", "--work", "enable work accounts") do
+        work_accounts = true
+      end
+      opts.on("-v", "--verbose", "verbose output to console") do
+        Catfriend.verbose = true
+      end
 
-            opts.on("-s", "--stop", "shut down running server") do
-                done_action = true
-                dbus = DBus.new
-                if dbus.send_shutdown
-                    puts "sent shutdown signal"
-                else
-                    puts "could not send shutdown signal, no server running?"
-                end
-            end
-        end.parse!
-
-        return 0 if done_action
-
-        Catfriend.verbose = false unless foreground
-
-        servers = parse_config
-        servers.reject! { |s| s.work_account } unless work_accounts
-        raise ConfigError, "no servers to check" if servers.empty?
-
-        if foreground
-            main_loop servers
+      opts.on("-s", "--stop", "shut down running server") do
+        done_action = true
+        dbus = DBus.new
+        if dbus.send_shutdown
+          puts "sent shutdown signal"
         else
-            pid = fork do
-                main_loop servers
-            end
-            Process.detach pid
+          puts "could not send shutdown signal, no server running?"
         end
-    rescue ConfigError => e
-        puts "misconfiguration: #{e.message}"
-    rescue Interrupt
-        servers.each { |s| s.kill }
-    rescue => e
-        puts "unknown error #{e.message}\n#{e.backtrace.join("\n")}"
-    else
-        return 0
-    end
+      end
+    end.parse!
 
-    1
+    return 0 if done_action
+
+    Catfriend.verbose = false unless foreground
+
+    servers = parse_config
+    servers.reject! { |s| s.work_account } unless work_accounts
+    raise ConfigError, "no servers to check" if servers.empty?
+
+    if foreground
+      main_loop servers
+    else
+      pid = fork do
+        main_loop servers
+      end
+      Process.detach pid
+    end
+  rescue ConfigError => e
+    puts "misconfiguration: #{e.message}"
+  rescue Interrupt
+    servers.each { |s| s.kill }
+  rescue => e
+    puts "unknown error #{e.message}\n#{e.backtrace.join("\n")}"
+  else
+    return 0
+  end
+
+  1
 end
 
 def self.main_loop servers
-    dbus = DBus.new servers
-    dbus.start
-    servers.each { |s| s.start }
-    servers.each { |s| s.join }
-    dbus.join
+  dbus = DBus.new servers
+  dbus.start
+  servers.each { |s| s.start }
+  servers.each { |s| s.join }
+  dbus.join
 end
 
-end ########################### end module
+end
 
 exit Catfriend.main ARGV
