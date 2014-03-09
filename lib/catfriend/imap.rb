@@ -2,6 +2,8 @@ require 'libnotify'
 require 'catfriend/server'
 require 'catfriend/thread'
 
+require 'net/imap'
+
 # unless I do this I get random errors from Libnotify on startup 90% of the
 # time... this could be a bug in autoload or ruby 1.9 rather than libnotify
 module Libnotify
@@ -9,6 +11,8 @@ module Libnotify
 end
 
 module Catfriend
+
+require_relative 'net_imap_exchange_patch'
 
 # This class represents a thread capable of checking and creating
 # notifications for a single mailbox on a single IMAP server.
@@ -83,20 +87,18 @@ class ImapServer
 
       if r.instance_of? Net::IMAP::UntaggedResponse
         case r.name
-        when 'EXISTS'
-          # some servers send this even when the message count
-          # hasn't increased so suspiciously double-check
-          if r.data != @message_count
-            notify_message(r.data) if r.data > @message_count
-            @message_count = r.data
-          end
-        when 'EXPUNGE'
-          @message_count -= 1
+        when 'EXISTS', 'EXPUNGE'
+          @imap.idle_done
         end
       end
     end
 
     Catfriend.whisper "idle loop over"
+    count = get_unseen_count
+    if count != @message_count
+      notify_message(count) if count > @message_count
+      @message_count = count
+    end
   rescue Net::IMAP::Error, IOError
     # reconnect and carry on
     reconnect unless stopping?
@@ -122,6 +124,16 @@ class ImapServer
     super
   end
 
+  def get_unseen_count
+    begin
+      # fetch raises an exception when the mailbox is empty
+      @imap.status(@mailbox || "INBOX", ["UNSEEN"])["UNSEEN"]
+    rescue => e
+      error "failed to get count of unseen messages"
+      0
+    end
+  end
+
   # Connect to the configured IMAP server and return message count.
   def connect
     args = nil
@@ -136,12 +148,7 @@ class ImapServer
     @imap.login(@user, @password)
     @imap.select(@mailbox || "INBOX")
 
-    begin
-      # fetch raises an exception when the mailbox is empty
-      @imap.fetch('*', 'UID').first.seqno
-    rescue
-      0
-    end
+    get_unseen_count
   end
 
   def reconnect

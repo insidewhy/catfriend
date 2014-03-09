@@ -12,7 +12,6 @@ $LOAD_PATH << 'lib' if File.exists? 'lib/catfriend'
 require 'catfriend/filetokenstack'
 require 'catfriend/imap'
 require 'catfriend/dbus'
-require 'net/imap'
 require 'optparse'
 
 module Catfriend

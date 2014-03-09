@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name        = "catfriend"
-    s.version     = "0.16"
+    s.version     = "0.17"
     s.platform    = Gem::Platform::RUBY
     s.authors     = ["James Pike"]
     s.email       = %w(catfriend@chilon.net)
@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
     s.files        = %w(LICENSE catfriend.example) + Dir.glob('lib/catfriend/*.rb')
     s.license      = 'Expat'
     s.executables  = %w(catfriend)
-    s.add_dependency('libnotify', '>=0.7.1')
-    s.add_dependency('ruby-dbus', '>=0.7')
-    # s.add_dependency('xdg', '>=2') # optional
+    s.add_runtime_dependency('libnotify', '>=0.7.1', '~> 0.8')
+    s.add_runtime_dependency('ruby-dbus', '>=0.7', '~> 0.11')
+    # s.add_runtime_dependency('xdg', '>=2') # optional
 end
