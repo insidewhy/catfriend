@@ -1,9 +1,9 @@
 require 'libnotify'
-require 'catfriend/server'
-require 'catfriend/thread'
+require_relative 'server'
+require_relative 'thread'
+require_relative 'net_imap_exchange_patch'
 
 require 'net/imap'
-require_relative 'net_imap_exchange_patch'
 
 # unless I do this I get random errors from Libnotify on startup 90% of the
 # time... this could be a bug in autoload or ruby 1.9 rather than libnotify

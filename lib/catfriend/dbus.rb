@@ -1,5 +1,5 @@
-require 'catfriend/thread'
-require 'catfriend/server'
+require_relative 'thread'
+require_relative 'server'
 require 'dbus'
 
 module Catfriend
