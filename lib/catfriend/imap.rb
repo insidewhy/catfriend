@@ -75,9 +75,7 @@ class ImapServer
     end
   end
 
-  # Continually waits for new e-mail raising notifications when new
-  # e-mail arrives or when error conditions happen. This methods only exits
-  # on an unrecoverable error.
+  # Waits until an event occurs which could change the message count.
   def sleep_until_change
     @imap.idle do |r|
       Catfriend.whisper "#{id}: #{r}"
