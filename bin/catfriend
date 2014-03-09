@@ -4,8 +4,11 @@
 # new e-mail arrives.
 #
 # Author:: James Pike (mailto:catfriend@chilon.net)
-# Copyright:: Copyright (c) 2011 James Pike
+# Copyright:: Copyright (c) 2011-2014 James Pike
 # License:: MIT
+
+$LOAD_PATH << 'lib' if File.exists? 'lib/catfriend'
+
 require 'catfriend/filetokenstack'
 require 'catfriend/imap'
 require 'catfriend/dbus'
