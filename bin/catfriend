@@ -130,7 +130,7 @@ def self.main args
     Catfriend.verbose = false unless foreground
 
     servers = parse_config
-    servers.reject! { |s| s.work_account } unless work_accounts
+    servers.reject! &:work_account unless work_accounts
     raise ConfigError, "no servers to check" if servers.empty?
 
     if foreground
