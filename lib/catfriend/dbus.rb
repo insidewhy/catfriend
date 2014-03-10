@@ -1,6 +1,7 @@
 require_relative 'thread'
 require_relative 'server'
 require 'dbus'
+require 'events'
 
 module Catfriend
 
@@ -12,12 +13,13 @@ INTERFACE = "org.freedesktop.Catfriend.System"
 # in which to run the dbus methods.
 class DBus
   include Thread
+  include Events::Emitter
 
   # This child class fulfils the DBus::Object interface
   class DBusObject < ::DBus::Object
-    def initialize(main, servers)
+    def initialize(main, emitter)
       @main    = main
-      @servers = servers
+      @emitter = emitter
       super PATH
     end
 
@@ -25,14 +27,9 @@ class DBus
       dbus_method :stop do
         Catfriend.whisper "received shutdown request"
         @main.quit  # this must be run from within method handler
-        @servers.each { |s| s.disconnect }
+        @emitter.emit :disconnect
       end
     end
-  end
-
-  # Initialize the object with a reference to each Imap object.
-  def initialize(servers = nil)
-    @servers = servers
   end
 
   # Start the DBus interface
@@ -55,7 +52,7 @@ class DBus
 
   # Call send_shutdown then start the DBus interface.
   def start_service
-    object = DBusObject.new(@main, @servers)
+    object = DBusObject.new(@main, self)
     service = @bus.request_service(SERVICE)
     service.export object
   end

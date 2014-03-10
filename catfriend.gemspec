@@ -16,5 +16,6 @@ Gem::Specification.new do |s|
     s.executables  = %w(catfriend)
     s.add_runtime_dependency('libnotify', '>=0.7.1', '~> 0.8')
     s.add_runtime_dependency('ruby-dbus', '>=0.7', '~> 0.11')
+    s.add_runtime_dependency('events', '~> 0.9')
     # s.add_runtime_dependency('xdg', '>=2') # optional
 end

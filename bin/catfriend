@@ -142,7 +142,7 @@ def self.main args
   rescue ConfigError => e
     puts "misconfiguration: #{e.message}"
   rescue Interrupt
-    servers.each { |s| s.kill }
+    servers.each &:kill
   rescue => e
     puts "unknown error #{e.message}\n#{e.backtrace.join("\n")}"
   else
@@ -153,10 +153,14 @@ def self.main args
 end
 
 def self.main_loop servers
-  dbus = DBus.new servers
+  dbus = DBus.new
+  dbus.on(:disconnect) do
+    servers.each &:disconnect
+  end
+
   dbus.start
-  servers.each { |s| s.start }
-  servers.each { |s| s.join }
+  servers.each &:start
+  servers.each &:join
   dbus.join
 end
 
