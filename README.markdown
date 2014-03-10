@@ -8,6 +8,7 @@ catfriend is a ruby program that checks your e-mail and creates desktop notifica
  * Simple configuration file format.
  * Updates an account's notification if it has not been closed rather than creating duplicate notifications.
  * Supports IMAP accounts with or without SSL.
+ * Can be shut down using dbus (catfriend -s).
  * Does not punish the fearless.
 
 ## Installation
