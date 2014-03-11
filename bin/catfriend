@@ -97,7 +97,7 @@ def self.main args
   work_accounts = false
   foreground = false
   Catfriend.verbose = false
-  done_action = false
+  return_code = nil
   begin
     OptionParser.new do |opts|
       opts.banner = "usage: #{APP_NAME} [options]"
@@ -113,17 +113,18 @@ def self.main args
       end
 
       opts.on("-s", "--stop", "shut down running server") do
-        done_action = true
         dbus = DBus.new
         if dbus.send_shutdown
           puts "sent shutdown signal"
+          return_code = 0
         else
           puts "could not send shutdown signal, no server running?"
+          return_code = 1
         end
       end
     end.parse!
 
-    return 0 if done_action
+    return return_code unless return_code.nil?
 
     Catfriend.verbose = false unless foreground
 
