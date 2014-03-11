@@ -91,10 +91,8 @@ def self.parse_config
 end
 
 # Main interface to the application. Reads all servers from config then runs
-# each one in a thread. The program exits when all threads encounter an
-# unrecoverable error.
-# TODO: Use a conditional variable so that any thread can signal the main
-#       thread to exit.
+# each one in a thread. If the ImapServer or Dbus threads raise an error then
+# this causes the program to exit.
 def self.main args
   work_accounts = false
   foreground = false
@@ -153,13 +151,35 @@ def self.main args
 end
 
 def self.main_loop servers
+  mutex = Mutex.new
+  error_condition = ConditionVariable.new
   dbus = DBus.new
-  dbus.on(:disconnect) do
-    servers.each &:disconnect
+
+  on_error = proc do
+    mutex.synchronize { error_condition.signal }
   end
 
+  dbus.on :disconnect, on_error
+
+  servers.each do |server|
+    server.on(:error) do |message|
+      $stderr.puts "#{server.id}: #{message}"
+      on_error
+    end
+  end
+
+  # start all child threads
   dbus.start
   servers.each &:start
+
+  # then wait for an error
+  mutex.synchronize { error_condition.wait(mutex) }
+
+  # clean up and exit
+  Catfriend.whisper 'caught error condition, disconnecting from servers'
+  servers.each &:disconnect
+
+  Catfriend.whisper 'joining child threads'
   servers.each &:join
   dbus.join
 end

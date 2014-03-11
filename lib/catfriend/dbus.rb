@@ -1,7 +1,8 @@
-require_relative 'thread'
-require_relative 'server'
 require 'dbus'
 require 'events'
+
+require_relative 'thread'
+require_relative 'server'
 
 module Catfriend
 
@@ -57,7 +58,7 @@ class DBus
     service.export object
   end
 
-  # Run the DBus server in its own ruby thread.
+  # Thread mixin interface: Run the DBus server in a virtual thread
   def run
     init
     if send_shutdown

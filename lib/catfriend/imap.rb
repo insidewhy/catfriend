@@ -1,9 +1,10 @@
 require 'libnotify'
+require 'events'
+require 'net/imap'
+
 require_relative 'server'
 require_relative 'thread'
 require_relative 'net_imap_exchange_patch'
-
-require 'net/imap'
 
 # unless I do this I get random errors from Libnotify on startup 90% of the
 # time... this could be a bug in autoload or ruby 1.9 rather than libnotify
@@ -18,6 +19,7 @@ module Catfriend
 class ImapServer
   include Thread
   include AccessorsFromHash
+  include Events::Emitter
 
   # Create new IMAP server with optional full configuration hash.
   # If the hash is not supplied at construction a further call must be
@@ -43,8 +45,7 @@ class ImapServer
 
   # Raise an error related to this particular server.
   def error message
-    # consider raising notification instead?
-    puts "#{id}: #{message}"
+    emit :error, message
   end
 
   # ThreadMixin interface. This connects to the mailserver and then
@@ -72,14 +73,18 @@ class ImapServer
   # Waits until an event occurs which could change the message count.
   def sleep_until_change
     @imap.idle do |r|
-      Catfriend.whisper "#{id}: #{r}"
-      next if r.instance_of? Net::IMAP::ContinuationRequest
+      begin
+        Catfriend.whisper "#{id}: #{r}"
+        next if r.instance_of? Net::IMAP::ContinuationRequest
 
-      if r.instance_of? Net::IMAP::UntaggedResponse
-        case r.name
-        when 'EXISTS', 'EXPUNGE'
-          @imap.idle_done
+        if r.instance_of? Net::IMAP::UntaggedResponse
+          case r.name
+          when 'EXISTS', 'EXPUNGE'
+            @imap.idle_done
+          end
         end
+      rescue => e
+        error e.message
       end
     end
 
