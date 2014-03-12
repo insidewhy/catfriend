@@ -153,19 +153,23 @@ end
 
 def self.main_loop servers
   mutex = Mutex.new
-  error_condition = ConditionVariable.new
+  shutdown_condition = ConditionVariable.new
   dbus = DBus.new
 
-  on_error = proc do
-    mutex.synchronize { error_condition.signal }
+  signal_shutdown = proc do
+    mutex.synchronize { shutdown_condition.signal }
   end
 
-  dbus.on :disconnect, on_error
+  dbus.on(:disconnect) do
+    Catfriend.whisper "received shutdown request"
+    signal_shutdown.call
+  end
 
   servers.each do |server|
     server.on(:error) do |message|
-      $stderr.puts "#{server.id}: #{message}"
-      on_error
+      $stderr.puts "#{server.id}: server error - #{message}"
+      # TODO: error notification?
+      signal_shutdown.call
     end
   end
 
@@ -173,11 +177,10 @@ def self.main_loop servers
   dbus.start
   servers.each &:start
 
-  # then wait for an error
-  mutex.synchronize { error_condition.wait(mutex) }
+  # then wait until something tells the main thread to shutdown
+  mutex.synchronize { shutdown_condition.wait(mutex) }
 
   # clean up and exit
-  Catfriend.whisper 'caught error condition, disconnecting from servers'
   servers.each &:disconnect
 
   Catfriend.whisper 'joining child threads'

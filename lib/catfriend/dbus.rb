@@ -26,7 +26,6 @@ class DBus
 
     dbus_interface INTERFACE do
       dbus_method :stop do
-        Catfriend.whisper "received shutdown request"
         @main.quit  # this must be run from within method handler
         @emitter.emit :disconnect
       end
