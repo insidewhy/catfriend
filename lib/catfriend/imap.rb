@@ -79,7 +79,7 @@ class ImapServer
 
         if r.instance_of? Net::IMAP::UntaggedResponse
           case r.name
-          when 'EXISTS', 'EXPUNGE'
+          when 'EXISTS', 'EXPUNGE', 'FETCH'
             @imap.idle_done
           end
         end
@@ -88,11 +88,13 @@ class ImapServer
       end
     end
 
-    Catfriend.whisper "idle loop over"
     count = get_unseen_count
     if count != @message_count
       notify_message(count) if count > @message_count
       @message_count = count
+      Catfriend.whisper "message count changed to #@message_count"
+    else
+      Catfriend.whisper "message count unchanged from #@message_count"
     end
   rescue Net::IMAP::Error, IOError
     # reconnect and carry on
